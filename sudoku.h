@@ -1,60 +1,43 @@
 #ifndef __SUDOKU_H__
 #define __SUDOKU_H__
 
-#include <stdio.h>
+#define SUB_N 3
+#define N ((SUB_N) * (SUB_N))
+#define UNASSIGNED 0
 
-using namespace std;
+typedef int Grid[N][N];
 
-constexpr int SUB_N = 3;
-constexpr int N = SUB_N * SUB_N;
-
-constexpr int UNASSIGNED = 0;
-
-using Grid = int(*)[N];
-using Location = struct {
+typedef struct
+{
     int row;
     int col;
     int val;
-};
+} Cell;
 
-using Heap = struct
+typedef struct
 {
-    Location *heap_arr;
+    Cell cell_arr[N * N];
     int count;
-};
+} Heap; // a heap containing the inserted cells for a given sudoku puzzle
 
-using Sudoku = struct {
+typedef struct
+{
     Grid grid;
     Heap heap;
-};
+} Sudoku;
 
-// TBD use as a structures
-inline void heap_push(Heap *heap, Location loc){
-    heap->heap_arr[heap->count++] = loc;
-}
-inline Location heap_pop(Heap *heap){
-    return heap->heap_arr[--heap->count];
-}
-inline Location* heap_top(Heap *heap){
-    // peek top element
-    return &(heap->heap_arr[heap->count-1]);
-}
-
-inline void sudoku_insert(Sudoku *sudoku, Location loc){
-    heap_push(&sudoku->heap, loc);
-    sudoku->grid[loc.row][loc.col] = loc.val;
-}
+inline void heap_push(Heap *heap, Cell cell){ heap->cell_arr[heap->count++] = cell; }
+inline Cell heap_pop(Heap *heap){ return heap->cell_arr[--heap->count]; }
 
 // General, defined in sudoku.cpp
-void print_sudoku(Grid grid);
-void print_heap(Heap *heap);
-int is_legal(Grid grid, int row, int col, int num);
-int validate_solution(Grid grid);
+void show_grid(const Grid *grid);
+void show_heap(const Heap *heap);
+void show_sudoku(const Sudoku *sudoku);
+int is_safe(const Grid *grid, int row, int col, int num);
+int validate_solution(const Grid *grid);
+void sudoku_reset(Sudoku *sudoku);
 
 // defined for each solver
-void sudoku_init(Sudoku *sudoku);
-void sudoku_reset(Sudoku *sudoku);
-void sudoku_free(Sudoku *sudoku);
-int solve(Sudoku *sudoku);
+extern int solve(Sudoku *sudoku);
 
 #endif //__SUDOKU_H__

@@ -1,11 +1,11 @@
 CXX=gcc
 CXXFLAGS=-O3 -Wall -g -std=c++17
-# IFLAGS=-include
-# LFALGS=-lpthread
 
-SRC=sudoku.cpp solve.cpp serial_recursive_solver.cpp
-# SRC=sudoku.cpp solve.cpp serial_nonrecursive_solver.cpp
-OBJ=$(SRC:.cpp=.o)
+SRC=solve.cpp sudoku.cpp
+
+# SRC += serial_nonrecursive_solver.cpp
+SRC += serial_recursive_solver.cpp
+
 EXE=sudoku
 
 ifeq ($(DEBUG),1)
@@ -13,12 +13,9 @@ ifeq ($(DEBUG),1)
 endif
 
 all: $(EXE)
-	
-$(EXE): $(OBJ)
-	$(CXX) $^ -o $@ $(CFLAGS)
 
-%.o: %.c
-	$(CXX) -c $^ -o $@ $(CFLAGS)
+$(EXE): $(SRC)
+	$(CXX) $^ -o $@ $(CFLAGS)
 	
 .PHONY: clean
 
