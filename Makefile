@@ -3,8 +3,9 @@ CXXFLAGS=-O3 -Wall -g -std=c++17
 
 SRC=solve.cpp sudoku.cpp
 
+# SRC += serial_recursive_solver.cpp
 # SRC += serial_nonrecursive_solver.cpp
-SRC += serial_recursive_solver.cpp
+SRC += serial_crooks_solver.cpp
 
 EXE=sudoku
 
