@@ -12,15 +12,14 @@ void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
         for (int j = 0; j < N; j++)
         {
             ch = fgetc(file_ptr);
+            while ((ch != '.') && ((ch < '1') || (ch > '9')))
+                ch = fgetc(file_ptr);
             if (ch == '.')
                 sudoku->grid[i][j] = UNASSIGNED;
             else
                 set_value(sudoku, i, j, ch-'0');
-            // (*grid)[i][j] = (ch == '.') ? UNASSIGNED : ch-'0';
         }
     }
-    ch = fgetc(file_ptr);
-    ch = fgetc(file_ptr);
 }
 int main(void)
 {
