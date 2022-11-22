@@ -21,29 +21,22 @@ void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
         }
     }
 }
-int main(void)
+// int main(void)
+int main(int argc, char *argv[])
 {
-    // FILE *file_ptr_ = fopen("puzzles2_17_clue", "r"); // puzzles5_forum_hardest_1905_11+
-    // for (int i = 0; i < 100; i++)
-    // {
-    //     for (int j = 0; j < 10; j++)
-    //     {
-    //         char ch;
-    //         ch = fgetc(file_ptr_);
-    //         printf("%d\t", ch);
-    //     }
-    //     printf("\n");
-    // }
-    // return 0;
+    printf("%d\n", argc);
+    if (argc != 3){
+        printf("Invalid arguments command usage: ./sudoku <num-of-problems> <puzzle_filename> \n");
+    }
     
-    FILE *file_ptr = fopen("puzzles2_17_clue", "r"); // puzzles5_forum_hardest_1905_11+
+    // Current available puzzle datasets: puzzles5_forum_hardest_1905_11+ puzzles2_17_clue
+    FILE *file_ptr = fopen(argv[2], "r");
     if (NULL == file_ptr) {
         printf("File can't be opened \n");
         exit(1);
     }
     Sudoku sudoku;
-    // Sudoku *sudoku = (Sudoku *) malloc(1 * sizeof(Sudoku));
-    int n_problems = 1000;
+    int n_problems = atoi(argv[1]);
     double start_time, end_time, elapsed_time;
     double total_elaspsed_time = 0.0;
     for (int i = 0; i < n_problems; i++)

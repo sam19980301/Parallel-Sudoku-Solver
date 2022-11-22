@@ -1,6 +1,19 @@
 #include <stdio.h>
 #include "sudoku.h"
 
+void set_value(Sudoku *sudoku, int row, int col, int val){
+    int start_row = (row / SUB_N) * SUB_N;
+    int start_col = (col / SUB_N) * SUB_N;
+    sudoku->grid[row][col] = val;
+    sudoku->markup[row][col] = 0;
+    for (int i = 0; i < N; i++)
+    {
+        remove_from_markup(&sudoku->markup, row, i, val);
+        remove_from_markup(&sudoku->markup, i, col, val);
+        remove_from_markup(&sudoku->markup, start_row + i / SUB_N, start_col + i % SUB_N, val);
+    }
+}
+
 void show_grid(const Grid *grid){
     printf("Sudoku's Grid\n");
     for (int i = 0; i < N; i++)
@@ -55,22 +68,18 @@ void show_sudoku(const Sudoku *sudoku){
 // Check whether an insertion is legal
 int is_safe(const Grid *grid, int row, int col, int num){
     // check is filled or not
-    // printf("Check Filled\n");
     if ((*grid)[row][col] != UNASSIGNED)
         return 0;
-    
     // check row
     // printf("Check Row\n");
     for (int i = 0; i < N; i++)
         if ((*grid)[row][i] == num)
             return 0;
-
     // check col
     // printf("Check Column\n");
     for (int i = 0; i < N; i++)
         if ((*grid)[i][col] == num)
             return 0;
-    
     // check sub-grid
     // printf("Check Sub-Grid\n");
     int start_row = (row / SUB_N) * SUB_N;
@@ -129,19 +138,6 @@ void sudoku_reset(Sudoku *sudoku){
     heap->count = 0;
 }
 
-void set_value(Sudoku *sudoku, int row, int col, int val){
-    int start_row = (row / SUB_N) * SUB_N;
-    int start_col = (col / SUB_N) * SUB_N;
-    sudoku->grid[row][col] = val;
-    sudoku->markup[row][col] = 0;
-    for (int i = 0; i < N; i++)
-    {
-        remove_from_markup(&sudoku->markup, row, i, val);
-        remove_from_markup(&sudoku->markup, i, col, val);
-        remove_from_markup(&sudoku->markup, start_row + i / SUB_N, start_col + i % SUB_N, val);
-    }
-}
-
 int elimination(Sudoku *sudoku){
     Grid *grid = &sudoku->grid;
     Markup *markup = &sudoku->markup;
@@ -164,13 +160,13 @@ int elimination(Sudoku *sudoku){
             }
         }
     }
-    // return (getTotalUnfilledCellsNum() == 0);
     return changed;
 }
 
 int lone_ranger(Sudoku *sudoku){
     Grid *grid = &sudoku->grid;
     Markup *markup = &sudoku->markup;
+    int checked = 0;
     // check row
     for (int i = 0; i < N; i++)
     {
@@ -186,7 +182,7 @@ int lone_ranger(Sudoku *sudoku){
             }
             if (cnt == 1){
                 set_value(sudoku, i, col, k);
-                return 1;
+                checked = 1; // return 1;
             }
         }
     }
@@ -205,7 +201,7 @@ int lone_ranger(Sudoku *sudoku){
             }
             if (cnt == 1){
                 set_value(sudoku, row, j, k);
-                return 1;
+                checked = 1; // return 1;
             }
         }
     }
@@ -230,10 +226,10 @@ int lone_ranger(Sudoku *sudoku){
                 }
                 if (cnt == 1){
                     set_value(sudoku, row, col, k);
-                    return 1;
+                    checked = 1; // return 1;
                 }
             }
         }
     }
-    return 0;    
+    return checked; // 0
 }
