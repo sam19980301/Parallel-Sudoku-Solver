@@ -25,16 +25,23 @@ void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
 int main(int argc, char *argv[])
 {
     printf("%d\n", argc);
+    /*
     if (argc != 3){
         printf("Invalid arguments command usage: ./sudoku <num-of-problems> <puzzle_filename> \n");
     }
+    */
+    if (argc != 2){
+        printf("Invalid arguments command usage: ./sudoku <num-of-problems>\n");
+    }
     
     // Current available puzzle datasets: puzzles5_forum_hardest_1905_11+ puzzles2_17_clue
+    /*
     FILE *file_ptr = fopen(argv[2], "r");
     if (NULL == file_ptr) {
         printf("File can't be opened \n");
         exit(1);
     }
+    */
     Sudoku sudoku;
     int n_problems = atoi(argv[1]);
     double start_time, end_time, elapsed_time;
@@ -42,7 +49,8 @@ int main(int argc, char *argv[])
     for (int i = 0; i < n_problems; i++)
     {
         sudoku_reset(&sudoku);
-        read_single_problem(&sudoku, file_ptr);
+        set_single_problem(&sudoku);
+        // read_single_problem(&sudoku, file_ptr);
         // show_grid(&sudoku.grid);
         // show_sudoku(&sudoku);
         start_time  = CycleTimer::currentSeconds();

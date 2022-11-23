@@ -85,5 +85,6 @@ int validate_solution(const Grid *grid);
 
 // defined for each solver
 extern int solve(Sudoku *sudoku);
+extern void set_single_problem(Sudoku *sudoku);
 
 #endif //__SUDOKU_H__
