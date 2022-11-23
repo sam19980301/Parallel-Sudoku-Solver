@@ -7,7 +7,7 @@ void show_grid(const Grid *grid){
     {
         for (int j = 0; j < N; j++)
         {
-            printf("%d\t", (*grid)[i][j]);
+            printf("%d  ", (*grid)[i][j]);
         }
         printf("\n");
     }

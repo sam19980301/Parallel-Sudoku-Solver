@@ -5,55 +5,82 @@
 #include "CycleTimer.h"
 #include "sudoku.h"
 
+#define PBSTR "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+#define PBWIDTH 60
+
+void print_progress(double percentage) {
+    int val = (int) (percentage * 100);
+    int lpad = (int) (percentage * PBWIDTH);
+    int rpad = PBWIDTH - lpad;
+    printf("\r%3d%% [%.*s%*s]", val, lpad, PBSTR, rpad, "");
+    fflush(stdout);
+}
+
 void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
-    char ch;
+    size_t len = N*N*3;
+    char *problem = NULL;
+    getline(&problem, &len, file_ptr);
+    char *delim = " ,.\n";  // symbols to seprate tokens from a string
+    char *token = strtok(problem, delim);
+    int counter = 0;
+
     for (int i = 0; i < N; i++)
     {
         for (int j = 0; j < N; j++)
-        {
-            ch = fgetc(file_ptr);
-            while ((ch != '.') && ((ch < '1') || (ch > '9')))
-                ch = fgetc(file_ptr);
-            if (ch == '.')
+        {   
+            if(strcmp(token, "-1")==0 || strcmp(token, "0")==0) {
                 sudoku->grid[i][j] = UNASSIGNED;
-            else
-                set_value(sudoku, i, j, ch-'0');
+            }
+            else {
+                set_value(sudoku, i, j, atoi(token));
+            }
+            token = strtok(NULL, delim);  // iterate to next token
+            counter++;
         }
     }
+    printf("%d tokens read from file.\n", counter);
 }
+
+// void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
+//     char ch;
+//     for (int i = 0; i < N; i++)
+//     {
+//         for (int j = 0; j < N; j++)
+//         {
+//             ch = fgetc(file_ptr);
+//             while ((ch != '.') && ((ch < '1') || (ch > '9')))
+//                 ch = fgetc(file_ptr);
+//             if (ch == '.')
+//                 sudoku->grid[i][j] = UNASSIGNED;
+//             else
+//                 set_value(sudoku, i, j, ch-'0');
+//         }
+//     }
+// }
+
+
 int main(void)
 {
-    // FILE *file_ptr_ = fopen("puzzles2_17_clue", "r"); // puzzles5_forum_hardest_1905_11+
-    // for (int i = 0; i < 100; i++)
-    // {
-    //     for (int j = 0; j < 10; j++)
-    //     {
-    //         char ch;
-    //         ch = fgetc(file_ptr_);
-    //         printf("%d\t", ch);
-    //     }
-    //     printf("\n");
-    // }
-    // return 0;
-    
-    FILE *file_ptr = fopen("puzzles2_17_clue", "r"); // puzzles5_forum_hardest_1905_11+
+    FILE *file_ptr = fopen("25_25.txt", "r"); // puzzles5_forum_hardest_1905_11+
+
     if (NULL == file_ptr) {
         printf("File can't be opened \n");
         exit(1);
     }
     Sudoku sudoku;
-    // Sudoku *sudoku = (Sudoku *) malloc(1 * sizeof(Sudoku));
-    int n_problems = 1000;
+    int n_problems = 1;
     double start_time, end_time, elapsed_time;
     double total_elaspsed_time = 0.0;
+
     for (int i = 0; i < n_problems; i++)
     {
         sudoku_reset(&sudoku);
         read_single_problem(&sudoku, file_ptr);
-        // show_grid(&sudoku.grid);
+        show_grid(&sudoku.grid);
         // show_sudoku(&sudoku);
         start_time  = CycleTimer::currentSeconds();
         solve(&sudoku);
+        print_progress(double(i)/double(n_problems));
         end_time  = CycleTimer::currentSeconds();
         if (!validate_solution(&sudoku.grid)){
             printf("Wrong answer\n");
