@@ -40,7 +40,7 @@ void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
     }
     printf("%d tokens read from file.\n", counter);
 }
-
+// 
 // void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
 //     char ch;
 //     for (int i = 0; i < N; i++)
@@ -59,23 +59,37 @@ void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
 // }
 
 
-int main(void)
-{
-    FILE *file_ptr = fopen("25_25.txt", "r"); // puzzles5_forum_hardest_1905_11+
 
+int main(int argc, char *argv[])
+{
+    printf("%d\n", argc);
+    /*
+    if (argc != 3){
+        printf("Invalid arguments command usage: ./sudoku <num-of-problems> <puzzle_filename> \n");
+    }
+    */
+    if (argc != 2){
+        printf("Invalid arguments command usage: ./sudoku <num-of-problems>\n");
+    }
+    
+    // Current available puzzle datasets: puzzles5_forum_hardest_1905_11+ puzzles2_17_clue
+    /*
+    FILE *file_ptr = fopen(argv[2], "r");
     if (NULL == file_ptr) {
         printf("File can't be opened \n");
         exit(1);
     }
+    */
     Sudoku sudoku;
-    int n_problems = 1;
+    int n_problems = atoi(argv[1]);
     double start_time, end_time, elapsed_time;
     double total_elaspsed_time = 0.0;
 
     for (int i = 0; i < n_problems; i++)
     {
         sudoku_reset(&sudoku);
-        read_single_problem(&sudoku, file_ptr);
+        set_single_problem(&sudoku);
+        // read_single_problem(&sudoku, file_ptr);
         show_grid(&sudoku.grid);
         // show_sudoku(&sudoku);
         start_time  = CycleTimer::currentSeconds();
