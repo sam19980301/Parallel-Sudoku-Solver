@@ -1,0 +1,4 @@
+sudoku
+*.o
+*.txt
+.vscode/
