@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "sudoku.h"
+#include "omp.h"
 
 void set_value(Sudoku *sudoku, int row, int col, int val){
     int start_row = (row / SUB_N) * SUB_N;
@@ -49,8 +50,10 @@ void show_markup(const Markup *markup){
     {
         for (int j = 0; j < N; j++)
         {
-            printf("Row%d\tCol%d\tMarkup in oct %o\n", i, j, (*markup)[i][j]);
+            // printf("Row%d\tCol%d\tMarkup in oct %o\n", i, j, (*markup)[i][j]);
+            printf("%o ", (*markup)[i][j]);
         }
+        printf("\n");
         
     }
     
@@ -136,100 +139,4 @@ void sudoku_reset(Sudoku *sudoku){
         }
     }
     heap->count = 0;
-}
-
-int elimination(Sudoku *sudoku){
-    Grid *grid = &sudoku->grid;
-    Markup *markup = &sudoku->markup;
-    int changed = 0;
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            int cnt = 0, ind = 0;
-            for (int k = 0; k < N; k++)
-            {
-                if (((*markup)[i][j] >> k) & 1){
-                    cnt++;
-                    ind = k;
-                }
-            }
-            if (cnt == 1){
-                set_value(sudoku, i, j, ind + 1);
-                changed = 1;
-            }
-        }
-    }
-    return changed;
-}
-
-int lone_ranger(Sudoku *sudoku){
-    Grid *grid = &sudoku->grid;
-    Markup *markup = &sudoku->markup;
-    int checked = 0;
-    // check row
-    for (int i = 0; i < N; i++)
-    {
-        for (int k = 1; k <= N; k++)
-        {
-            int cnt = 0, col = -1;
-            for (int j = 0; j < N; j++)
-            {
-                if (markup_contain(markup, i, j, k)){
-                    cnt++;
-                    col = j;
-                }
-            }
-            if (cnt == 1){
-                set_value(sudoku, i, col, k);
-                checked = 1; // return 1;
-            }
-        }
-    }
-    // check column
-    for (int j = 0; j < N; j++)
-    {
-        for (int k = 0; k < N; k++)
-        {
-            int cnt = 0, row = -1;
-            for (int i = 0; i < N; i++)
-            {
-                if (markup_contain(markup, i, j, k)){
-                    cnt++;
-                    row = i;
-                }
-            }
-            if (cnt == 1){
-                set_value(sudoku, row, j, k);
-                checked = 1; // return 1;
-            }
-        }
-    }
-
-    // check sub-grid
-    for (int i = 0; i < N; i+=SUB_N)
-    {
-        for (int j = 0; j < N; j+=SUB_N)
-        {
-            for (int k = 1; k <= N; k++)
-            {
-                int cnt = 0, row = -1, col = -1;
-                for (int ii = 0; ii < SUB_N; ii++)
-                {
-                    for (int jj = 0; jj < SUB_N; jj++){
-                        if (markup_contain(markup ,i+ii, j+jj, k)){
-                            cnt++;
-                            row = i + ii;
-                            col = j + jj;
-                        }
-                    }
-                }
-                if (cnt == 1){
-                    set_value(sudoku, row, col, k);
-                    checked = 1; // return 1;
-                }
-            }
-        }
-    }
-    return checked; // 0
 }

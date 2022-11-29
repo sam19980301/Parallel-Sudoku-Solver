@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#define SUB_N 5
+#define SUB_N 3
 #define N ((SUB_N) * (SUB_N))
 #define UNASSIGNED 0
 
