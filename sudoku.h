@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#define SUB_N 3
+#define SUB_N 5
 #define N ((SUB_N) * (SUB_N))
 #define UNASSIGNED 0
 
@@ -24,6 +24,7 @@ typedef struct sudoku
     Grid orig_grid;
     Markup orig_markup;
 } Screenshot;
+
 typedef struct
 {
     Screenshot cell_arr[N * N];
@@ -50,6 +51,10 @@ inline void remove_from_markup(Markup *markup, int row, int col, int val){
 } // or return whether or not the original bit is set
 
 // heap function
+// copy heap from src to dest
+inline void copy_heap(Heap *dest, Heap* src) {
+    memcpy(src, dest, sizeof(Heap));
+}
 // make a single guess: store the guess info (row, col and val wrapped with a cell), current markup and current grid
 inline void heap_push(Heap *heap, Cell *cell, Markup *markup, Grid *grid){
     heap->cell_arr[heap->count].cell = *cell;
@@ -68,6 +73,11 @@ inline void heap_pop(Heap *heap, Cell *cell, Markup *markup, Grid *grid){
 // sudoku function
 void sudoku_reset(Sudoku *sudoku);
 void set_value(Sudoku *sudoku, int row, int col, int val);
+// copy entire sudoku excluding it's heap, in case of backtracking
+inline void copy_sudoku(Sudoku *dest, Sudoku *src) {
+    memcpy(dest->grid, src->grid, sizeof(Grid));
+    memcpy(dest->markup, src->markup, sizeof(Markup));
+}
 
 // crook's algorithm (seach space pruning): elimination, lone ranger, twins and triplets
 int elimination(Sudoku *sudoku);

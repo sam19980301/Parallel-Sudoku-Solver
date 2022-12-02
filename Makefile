@@ -5,8 +5,9 @@ SRC=solve.cpp sudoku.cpp generator.cpp
 
 # SRC += serial_recursive_solver.cpp
 # SRC += serial_nonrecursive_solver.cpp
-SRC += serial_crooks_solver.cpp
-# SRC += parallel_crooks_solver.cpp
+# SRC += brute_force_crook_pruning.cpp
+SRC += parallel_crooks_solver.cpp
+# SRC += serial_crooks_solver.cpp
 
 EXE=sudoku
 

@@ -11,8 +11,8 @@
 #define PBWIDTH 60
 
 /* flags for debugging */
-#define OLD_READ 1
-// #define NEW_READ 1
+// #define OLD_READ 1
+#define NEW_READ 1
 // #define GRID_VERBOSE 1
 
 void print_progress(double percentage) {
@@ -30,7 +30,7 @@ void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
     getline(&problem, &len, file_ptr);
     char *delim = " ,\n";  // symbols to seperate tokens from a string
     char *token = strtok(problem, delim);
-    int counter = 0;
+    int unknown = 0, total = 0;
 
     for (int i = 0; i < N; i++)
     {
@@ -38,15 +38,16 @@ void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
         {   
             if(strcmp(token, "-1")==0 || strcmp(token, "0")==0) {
                 sudoku->grid[i][j] = UNASSIGNED;
+                unknown++;
             }
             else {
                 set_value(sudoku, i, j, atoi(token));
             }
             token = strtok(NULL, delim);  // iterate to next token
-            counter++;
+            total++;
         }
     }
-    printf("%d tokens read from file.\n", counter);
+    printf("%d tokens read from file with %d unknowns.\n", total, unknown);
 }
 #endif
 
@@ -98,7 +99,7 @@ int main(int argc, char *argv[])
 
         #ifdef GRID_VERBOSE
         show_grid(&sudoku.grid);
-        show_sudoku(&sudoku);
+        // show_sudoku(&sudoku);
         #endif
         
         start_time  = CycleTimer::currentSeconds();
@@ -108,7 +109,7 @@ int main(int argc, char *argv[])
 
         if (!validate_solution(&sudoku.grid)){
             printf("Wrong answer\n");
-            show_sudoku(&sudoku);
+            // show_sudoku(&sudoku);
             exit(1);
         }
 
