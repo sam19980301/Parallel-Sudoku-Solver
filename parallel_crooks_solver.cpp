@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include "CycleTimer.h"
 
 #define DEBUG_COPY_SUDOKU
 
@@ -10,6 +11,9 @@ using namespace std;
 
 void crook_pruning(Sudoku *sudoku);
 int crooks_solver(Sudoku *sudoku);
+
+const static int thread_num = 12;
+const static int filled_cells_number = 5;
 
 typedef struct
 {
@@ -33,7 +37,7 @@ void show_UnknownCell_list(vector<UnknownCell> &unknown_cell_list) {
 }
 
 // get first K cells' cordinate 
-void get_UnknownCell_list(vector<UnknownCell> &cell_list, Markup *markup, int num) {
+void get_UnknownCell_list(vector<UnknownCell> &cell_list, const Markup *markup, const int num) {
     int row = 0, col = 0; 
     while(cell_list.size() < num) {
         // find unknown cell
@@ -55,7 +59,7 @@ void get_UnknownCell_list(vector<UnknownCell> &cell_list, Markup *markup, int nu
     }
 }
 
-void get_perm(vector<Sudoku*> &sudoku_list, Sudoku *sudoku, vector<UnknownCell> &cell_list, int depth) {
+void get_perm(vector<Sudoku*> &sudoku_list, Sudoku *sudoku, const vector<UnknownCell> &cell_list, const int depth) {
     UnknownCell cell = cell_list[depth];  
     for(int i = 0; i < cell.possible_values.size(); i++) {
         Cell temp_cell;
@@ -76,21 +80,54 @@ void get_perm(vector<Sudoku*> &sudoku_list, Sudoku *sudoku, vector<UnknownCell> 
     }
 }
 
-void show_sudoku_list(vector<Sudoku*> sudoku_list) {
+void show_sudoku_list(const vector<Sudoku*> sudoku_list) {
     cout << "--- show sudoku list! ---" << endl;
     for(int i = 0; i < sudoku_list.size(); i++) {
         show_grid(&sudoku_list[i]->grid);
     }
 }
 
+int count_unknown(Sudoku *sudoku) 
+{
+    int count = 0;
+    for(int i = 0; i < N; i++) 
+    {
+        for(int j = 0; j < N; j++)
+        {
+            if((sudoku->grid)[i][j] == UNASSIGNED)
+            {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
 int solve(Sudoku *sudoku) {
+    // const int thread_num = 16, filled_cells_number = 3;
+    double start_time, end_time, elapsed_time;
+    start_time  = CycleTimer::currentSeconds();
+
     cout << "-- parallel sudoku solver! --" << endl;
     crook_pruning(sudoku);
+    int unknown = count_unknown(sudoku);
+    cout << unknown << " [crook pruning] unknowns after pruning ..." << endl;
+    cout << "---------------------------" << endl << endl;
+
+    if(unknown==0) {  
+        end_time = CycleTimer::currentSeconds();
+        elapsed_time = end_time - start_time;
+        if(validate_solution(&sudoku->grid)) {
+            cout << "Problem has been solved without parallel backtracking! " << endl;
+            cout << elapsed_time << "sec " << endl;
+            cout << "-----------------" << endl << endl;
+        }
+        exit(0);
+    }
+
     Grid *grid = &sudoku->grid;
     Heap *heap = &sudoku->heap;
     Markup *markup = &sudoku->markup;
-    int thread_num = 0, cnt = 0, row = 0, col = 0;
-    int filled_cells_number = 4;
     
     vector<UnknownCell> unknwon_cell_list;
     get_UnknownCell_list(unknwon_cell_list, markup, filled_cells_number);
@@ -110,21 +147,26 @@ int solve(Sudoku *sudoku) {
     cout << "-- Original Grid --" << endl;
     show_grid(&sudoku->grid);
 
-    cout << "Creating " << parallel_sudoku_list.size() << " threads ... " << endl;
-    #pragma omp parallel for num_threads (8)
+    end_time  = CycleTimer::currentSeconds();
+    elapsed_time = end_time - start_time;
+    cout << "Time of preparing parallel sudoku: " << elapsed_time << endl;
+    cout << "Running "<< thread_num << " threads in parallel, there are " << parallel_sudoku_list.size() << " threads to be validated ... " << endl;
+    #pragma omp parallel for num_threads (thread_num)
     for(int i = 0; i <parallel_sudoku_list.size(); i++) {
-        // cout << "----------- " << i << " ------------" << endl;
-        // show_grid(&parallel_sudoku_list[i]->grid);
+        double thread_start_time = CycleTimer::currentSeconds();
+        double thread_end_time = 0;
+        copy_sudoku(sudoku, parallel_sudoku_list[i]);
         crooks_solver(parallel_sudoku_list[i]);
 
+        // cout << "----------- " << i << " ------------" << endl;
         if(validate_solution(&parallel_sudoku_list[i]->grid)) {
-            cout << i << " : Correct Answer!" << endl;
-            show_grid(&parallel_sudoku_list[i]->grid);
-            copy_sudoku(sudoku, parallel_sudoku_list[i]);
-            // break;
-        } else {
-            cout << i << " : Wrong Answer!" << endl;
+            // cout << i << " : Correct Answer!" << endl;
             // show_grid(&parallel_sudoku_list[i]->grid);
+            thread_end_time = CycleTimer::currentSeconds();
+            cout << (thread_end_time - thread_start_time) + elapsed_time << " sec" << endl;
+            #pragma omp cancel for
+        } else {
+            // cout << i << " : Wrong Answer!" << endl;
         }
         // cout << "-----------------------" << endl;
     }
