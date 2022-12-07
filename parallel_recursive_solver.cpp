@@ -8,7 +8,7 @@
 using namespace std;
 
 void crook_pruning(Sudoku *sudoku);
-int crooks_solver(Sudoku *sudoku);
+int serial_recursive_solver(Grid *grid, int row, int col);
 
 static const int threads_in_parallel = 16;  // Specify omp parallel threads
 static const int filled_cells_number = 2;   // fill first K unknown cells
@@ -28,7 +28,7 @@ void show_unknownCell_list(vector<UnknownCell> &unknown_cell_list)
     {
         int row = unknown_cell_list[i].row; 
         int col = unknown_cell_list[i].col;
-        cout << "Cell(" << row << ", " << col << ") = ";
+        cout << "  Cell(" << row << ", " << col << ") = ";
         for(int j = 0; j <unknown_cell_list[i].possible_values.size(); j++) 
         {
             cout << unknown_cell_list[i].possible_values[j] << " ";
@@ -37,7 +37,6 @@ void show_unknownCell_list(vector<UnknownCell> &unknown_cell_list)
     }
     cout << endl << endl;
 }
-
 
 // get first K unknown cells' cordinate 
 int get_UnknownCell_list(vector<UnknownCell> &cell_list, const Markup *markup, const int num) 
@@ -99,7 +98,7 @@ void get_perm(vector<Sudoku*> &sudoku_list, Sudoku *sudoku, const vector<Unknown
 
 void show_sudoku_list(const vector<Sudoku*> sudoku_list) 
 {
-    cout << "[ Show parallel sudoku list ]" << endl;
+    cout << "[Show parallel sudoku list]" << endl;
     for(int i = 0; i < sudoku_list.size(); i++) 
     {
         show_grid(&sudoku_list[i]->grid);
@@ -126,26 +125,25 @@ int count_unknown(Sudoku *sudoku)
 int solve(Sudoku *sudoku) 
 {
     double serial_start_time = 0, serial_end_time = 0, serial_elapsed_time = 0;
-    cout << "[ Parallelized Crook's solver ]" << endl;
+    cout << "[ Parallelized Recursive Solver ]" << endl;
     serial_start_time  = CycleTimer::currentSeconds();
-
+/*
     // Crook pruning
-    crook_pruning(sudoku);
     int unknown = count_unknown(sudoku);
+    crook_pruning(sudoku);
     cout << "[ Crook pruning ]" << endl << " # Unknowns cells in the grid after pruning: " << unknown << endl;
     cout << "---------------------------" << endl << endl;
-    if(unknown==0) 
-    {
+    if(unknown==0) {
         serial_end_time = CycleTimer::currentSeconds();
         serial_elapsed_time = serial_end_time - serial_start_time;
         if(validate_solution(&sudoku->grid)) {
             cout << "Problem has been solved without parallel backtracking! " << endl;
-            cout << serial_elapsed_time << " sec " << endl;
+            cout << serial_elapsed_time << "sec " << endl;
             cout << "-----------------" << endl << endl;
         }
         exit(0);
     }
-
+*/
     Grid *grid = &sudoku->grid;
     Heap *heap = &sudoku->heap;
     Markup *markup = &sudoku->markup;
@@ -162,7 +160,7 @@ int solve(Sudoku *sudoku)
     get_perm(parallel_sudoku_list, sudoku, unknown_cell_list, 0);  
     serial_end_time  = CycleTimer::currentSeconds();
     serial_elapsed_time = serial_end_time - serial_start_time;
-
+    
     // Verbose
     cout << "-- Original Grid --" << endl;
     show_grid(&sudoku->grid);
@@ -177,14 +175,13 @@ int solve(Sudoku *sudoku)
     for(int i = 0; i < parallel_sudoku_list.size(); i++) 
     {
         double parallel_end_time = 0;
-        crook_pruning(parallel_sudoku_list[i]);
-        crooks_solver(parallel_sudoku_list[i]);
+        // crook_pruning(parallel_sudoku_list[i]);
+        serial_recursive_solver(&parallel_sudoku_list[i]->grid, 0, 0);
 
         #pragma omp critical
         {
             if(validate_solution(&parallel_sudoku_list[i]->grid)) 
             {
-
                 parallel_end_time = CycleTimer::currentSeconds();
                 cout << "-- Answer found! --" << endl;
                 cout << "Response time (1st answer return): " << (parallel_end_time - parallel_start_time) + serial_elapsed_time << " (sec)" << endl;
@@ -192,8 +189,7 @@ int solve(Sudoku *sudoku)
                 show_grid(&parallel_sudoku_list[i]->grid);
                 copy_sudoku(sudoku, parallel_sudoku_list[i]);
                 exit(0);
-                
-            }
+            } 
             else 
             {
                 // cout << i << " : Wrong Answer!" << endl;
@@ -203,86 +199,37 @@ int solve(Sudoku *sudoku)
     }
 }
 
-// serialized & non-recursive solver with crooks algorithm
-int crooks_solver(Sudoku *sudoku)
+// serialized & recursive solver
+int serial_recursive_solver(Grid *grid, int row, int col)
 {
-    Grid *grid = &sudoku->grid;
-    Heap *heap = &sudoku->heap;
-    Markup *markup = &sudoku->markup;
-    Cell top_cell;
-    int row = 0, col = 0, val;
-    int find_safe_insertion;
-
-    // perform elimination & lone ranger first
-    crook_pruning(sudoku);
-
-    // set_value
-    while (row != N)
+    // finish iteration
+    if (row == N)
+        return 1;
+    int next_row = row + (col == N-1), next_col = (col + 1)%N;
+    // skip if assigned
+    if ((*grid)[row][col] != UNASSIGNED)
+        return serial_recursive_solver(grid, next_row, next_col);
+    // try all possible value
+    for (int v = 1; v <= N; ++v)
     {
-        find_safe_insertion = 0;
-        if ((*grid)[row][col] == UNASSIGNED){
-            if ((*markup)[row][col])
-            {
-                for (int v = 1; v <= N; v++)
-                {
-                    if ((*markup)[row][col] & (1 << (v-1)))
-                    {
-                        // find safe insertion, make a guess
-                        Cell cell = {row, col, v};
-                        heap_push(heap, &cell, &sudoku->markup, &sudoku->grid);
-                        set_value(sudoku, row, col, v);
-                        crook_pruning(sudoku);
-                        find_safe_insertion = 1;
-                        break;
-                    }
-                }
-            }
-            while (!find_safe_insertion)
-            {
-                if (heap->count == 0)
-                    return 0;
-                // fail to find safe insertion, backtrack
-                // try other value for the top cell
-                heap_pop(heap, &top_cell, &sudoku->markup, &sudoku->grid);  // back-tracking
-                row = top_cell.row;
-                col = top_cell.col;
-                val = top_cell.val;
-                (*grid)[row][col] = UNASSIGNED;
-                for (val =  top_cell.val + 1; val <= N; val++)
-                {
-                    if ((*markup)[row][col] & (1 << (val-1)))
-                    {
-                        Cell cell = {row, col, val};
-                        heap_push(heap, &cell, &sudoku->markup, &sudoku->grid);
-                        set_value(sudoku, row, col, val);
-                        crook_pruning(sudoku);
-                        find_safe_insertion = 1;
-                        break;
-                    }
-                }
-            }
+        // single guess
+        if (is_safe(grid, row, col, v))
+        {
+            #ifdef DEBUG
+                show_grid(grid);
+            #endif
+            (*grid)[row][col] = v;
+            if (serial_recursive_solver(grid, next_row, next_col))
+                return 1;
         }
-        row = row + (col == N-1);
-        col = (col + 1)%N;
+        else
+        {
+            #ifdef DEBUG
+                printf("Invalid insertion %d\t%d\t%d\n", row, col, v);
+            #endif
+        }
+        // undo guess
+        (*grid)[row][col] = UNASSIGNED;
     }
-    return 1;
-}
-
-void crook_pruning(Sudoku *sudoku)
-{
-    int changed, e_changed, l_changed;
-    do
-    {
-        changed = 0;
-        do
-        {
-            e_changed = elimination(sudoku);
-            changed += e_changed;
-        } while (e_changed);
-        do
-        {
-            l_changed = lone_ranger(sudoku);
-            changed += l_changed;
-        } while (l_changed);
-    } while (changed);
+    return 0;
 }

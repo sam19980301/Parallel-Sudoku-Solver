@@ -3,7 +3,6 @@
 #include <string.h>
 #include <iostream>
 
-// #include "omp.h"
 #include "CycleTimer.h"
 #include "sudoku.h"
 
@@ -11,65 +10,59 @@
 #define PBWIDTH 60
 
 /* flags for debugging */
-// #define OLD_READ 1
-#define NEW_READ 1
-// #define GRID_VERBOSE 1
+#define GRID_VERBOSE 1
 
-void print_progress(double percentage) {
-    int val = (int) (percentage * 100);
-    int lpad = (int) (percentage * PBWIDTH);
-    int rpad = PBWIDTH - lpad;
-    printf("\r%3d%% [%.*s%*s]", val, lpad, PBSTR, rpad, "");
-    fflush(stdout);
-}
 
-#ifdef NEW_READ
 void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
-    size_t len = N*N*3;
-    char *problem = NULL;
-    getline(&problem, &len, file_ptr);
-    char *delim = " ,\n";  // symbols to seperate tokens from a string
-    char *token = strtok(problem, delim);
     int unknown = 0, total = 0;
-
-    for (int i = 0; i < N; i++)
+    if(SUB_N>3) 
     {
-        for (int j = 0; j < N; j++)
-        {   
-            if(strcmp(token, "-1")==0 || strcmp(token, "0")==0) {
-                sudoku->grid[i][j] = UNASSIGNED;
-                unknown++;
+        std::cout << "parsing input..." << std::endl;
+        size_t len = N*N*3;
+        char *problem = NULL;
+        getline(&problem, &len, file_ptr);
+        char *delim = " ,\n";  // symbols to seperate tokens from a string
+        char *token = strtok(problem, delim);
+
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < N; j++)
+            {   
+                if(strcmp(token, "-1")==0 || strcmp(token, "0")==0) {
+                    sudoku->grid[i][j] = UNASSIGNED;
+                    unknown++;
+                }
+                else {
+                    set_value(sudoku, i, j, atoi(token));
+                }
+                token = strtok(NULL, delim);  // iterate to next token
+                total++;
             }
-            else {
-                set_value(sudoku, i, j, atoi(token));
+        }
+    } 
+    else if(SUB_N==3) 
+    {
+        char ch;    
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < N; j++)
+            {
+                ch = fgetc(file_ptr);
+                while ((ch != '.') && ((ch < '1') || (ch > '9')))
+                    ch = fgetc(file_ptr);
+                    total++;
+                if (ch == '.') {
+                    sudoku->grid[i][j] = UNASSIGNED;
+                    unknown++;
+                }
+                else {
+                    set_value(sudoku, i, j, ch-'0');
+                }
             }
-            token = strtok(NULL, delim);  // iterate to next token
-            total++;
         }
     }
     printf("%d tokens read from file with %d unknowns.\n", total, unknown);
 }
-#endif
-
-#ifdef OLD_READ
-void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
-    char ch;
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            ch = fgetc(file_ptr);
-            while ((ch != '.') && ((ch < '1') || (ch > '9')))
-                ch = fgetc(file_ptr);
-            if (ch == '.')
-                sudoku->grid[i][j] = UNASSIGNED;
-            else
-                set_value(sudoku, i, j, ch-'0');
-        }
-    }
-}
-#endif
-
 
 int main(int argc, char *argv[])
 {
