@@ -1,7 +1,5 @@
 #include "sudoku.h"
 
-void crook_pruning(Sudoku *sudoku);
-
 // serialized & non-recursive solver with crooks algorithm
 int solve(Sudoku *sudoku){
     Grid *grid = &sudoku->grid;
@@ -40,7 +38,8 @@ int solve(Sudoku *sudoku){
                 row = top_cell.row;
                 col = top_cell.col;
                 val = top_cell.val;
-                (*grid)[row][col] = UNASSIGNED;
+                // (*grid)[row][col] = UNASSIGNED;
+                unset_value(sudoku, row, col);
                 for (val =  top_cell.val + 1; val <= N; val++)
                 {
                     if ((*markup)[row][col] & (1 << (val-1))){
@@ -60,20 +59,3 @@ int solve(Sudoku *sudoku){
     return 1;
 }
 
-void crook_pruning(Sudoku *sudoku){
-    int changed, e_changed, l_changed;
-    do
-    {
-        changed = 0;
-        do
-        {
-            e_changed = elimination(sudoku);
-            changed += e_changed;
-        } while (e_changed);
-        do
-        {
-            l_changed = lone_ranger(sudoku);
-            changed += l_changed;
-        } while (l_changed);
-    } while (changed);
-}

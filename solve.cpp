@@ -5,67 +5,64 @@
 #include "CycleTimer.h"
 #include "sudoku.h"
 
-void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
-    char ch;
-    for (int i = 0; i < N; i++)
-    {
-        for (int j = 0; j < N; j++)
-        {
-            ch = fgetc(file_ptr);
-            while ((ch != '.') && ((ch < '1') || (ch > '9')))
-                ch = fgetc(file_ptr);
-            if (ch == '.')
-                sudoku->grid[i][j] = UNASSIGNED;
-            else
-                set_value(sudoku, i, j, ch-'0');
-        }
-    }
-}
-// int main(void)
+/* flags for debugging */
+// #define GRID_VERBOSE
+
 int main(int argc, char *argv[])
 {
-    printf("%d\n", argc);
-    /*
+    // printf("%d\n", argc);
     if (argc != 3){
-        printf("Invalid arguments command usage: ./sudoku <num-of-problems> <puzzle_filename> \n");
-    }
-    */
-    if (argc != 2){
-        printf("Invalid arguments command usage: ./sudoku <num-of-problems>\n");
+        printf("Invalid arguments command usage: ./sudoku <num-of-problems> <filepath-of-problem> \n");
     }
     
-    // Current available puzzle datasets: puzzles5_forum_hardest_1905_11+ puzzles2_17_clue
-    /*
     FILE *file_ptr = fopen(argv[2], "r");
     if (NULL == file_ptr) {
         printf("File can't be opened \n");
         exit(1);
     }
-    */
     Sudoku sudoku;
     int n_problems = atoi(argv[1]);
     double start_time, end_time, elapsed_time;
     double total_elaspsed_time = 0.0;
+    int guesses;
+    int total_guesses = 0;
+    int max_depth;
+    int total_max_depth = 0;
     for (int i = 0; i < n_problems; i++)
     {
         sudoku_reset(&sudoku);
-        set_single_problem(&sudoku);
-        // read_single_problem(&sudoku, file_ptr);
-        // show_grid(&sudoku.grid);
+        read_single_problem(&sudoku, file_ptr);
+        // printf("%d\n", sudoku.grid.unknown);
+
+        #ifdef GRID_VERBOSE
+        show_grid(&sudoku.grid);
         // show_sudoku(&sudoku);
+        #endif
+
         start_time  = CycleTimer::currentSeconds();
         solve(&sudoku);
         end_time  = CycleTimer::currentSeconds();
+        
         if (!validate_solution(&sudoku.grid)){
             printf("Wrong answer\n");
             show_sudoku(&sudoku);
             exit(1);
         }
+
+        #ifdef GRID_VERBOSE
+        printf("[Result]\n");
+        show_grid(&sudoku.grid);
+        #endif
+
+        guesses = sudoku.heap.guess;
+        max_depth = sudoku.heap.max_depth;
         elapsed_time = end_time - start_time;
-        printf("Correct. Elapsed time=%.4f sec\n", elapsed_time);
+        printf("Correct. Elapsed time=%.4f sec. Guess %5d times. Max Depth %d\n", elapsed_time, guesses, max_depth);
+        total_guesses += guesses;
+        total_max_depth += max_depth;
         total_elaspsed_time += elapsed_time;
     }
-    printf("Total elapsed time=%.4f sec\n", total_elaspsed_time);    
+    printf("Total elapsed time=%.4f sec. Total guess %d times. Max Depth %d\n", total_elaspsed_time, total_guesses, total_max_depth);
     return 0;
 }
 

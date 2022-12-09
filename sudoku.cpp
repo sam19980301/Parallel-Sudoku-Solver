@@ -1,19 +1,6 @@
 #include <stdio.h>
 #include "sudoku.h"
 
-void set_value(Sudoku *sudoku, int row, int col, int val){
-    int start_row = (row / SUB_N) * SUB_N;
-    int start_col = (col / SUB_N) * SUB_N;
-    sudoku->grid[row][col] = val;
-    sudoku->markup[row][col] = 0;
-    for (int i = 0; i < N; i++)
-    {
-        remove_from_markup(&sudoku->markup, row, i, val);
-        remove_from_markup(&sudoku->markup, i, col, val);
-        remove_from_markup(&sudoku->markup, start_row + i / SUB_N, start_col + i % SUB_N, val);
-    }
-}
-
 void show_grid(const Grid *grid){
     printf("Sudoku's Grid\n");
     for (int i = 0; i < N; i++)
@@ -136,6 +123,9 @@ void sudoku_reset(Sudoku *sudoku){
         }
     }
     heap->count = 0;
+    heap->guess = 0;
+    heap->depth = 0;
+    heap->max_depth = 0;
 }
 
 int elimination(Sudoku *sudoku){
@@ -232,4 +222,41 @@ int lone_ranger(Sudoku *sudoku){
         }
     }
     return checked; // 0
+}
+
+void crook_pruning(Sudoku *sudoku){
+    int changed, e_changed, l_changed;
+    do
+    {
+        changed = 0;
+        do
+        {
+            e_changed = elimination(sudoku);
+            changed += e_changed;
+        } while (e_changed);
+        do
+        {
+            l_changed = lone_ranger(sudoku);
+            changed += l_changed;
+        } while (l_changed);
+    } while (changed);
+}
+
+void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
+    char ch;
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            ch = fgetc(file_ptr);
+            while ((ch != '.') && (!((ch >= '1') && (ch <= '9'))) && (!((ch >= 'A') && (ch <= 'G'))))
+                ch = fgetc(file_ptr);
+            if (ch == '.')
+                sudoku->grid[i][j] = UNASSIGNED;
+            else if ((ch >= '1') && (ch <= '9'))
+                set_value(sudoku, i, j, ch-'0');
+            else
+                set_value(sudoku, i, j, ch-'A'+10);
+        }
+    }
 }

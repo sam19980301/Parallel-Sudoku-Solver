@@ -1,17 +1,21 @@
 CXX=g++
-CXXFLAGS=-O3 -Wall -g -std=c++17
+CXXFLAGS=-O3 -fopenmp -Wall -g -std=c++17
 
-SRC=solve.cpp sudoku.cpp generator.cpp
+SRC=solve.cpp sudoku.cpp
+SRC=solve_parallel.cpp sudoku.cpp
 
-# SRC += serial_recursive_solver.cpp
+# SRC += __serial_recursive_solver.cpp # Dont use
 # SRC += serial_nonrecursive_solver.cpp
-SRC += serial_crooks_solver.cpp
+# SRC += serial_crooks_solver.cpp
+
+# SRC += parallel_nonrecursive_solver.cpp
+SRC += parallel_crooks_solver.cpp
 
 EXE=sudoku
 
-ifeq ($(DEBUG),1)
-	CXXFLAGS += -D DEBUG
-endif
+# ifeq ($(PROFILE),1)
+# 	CXXFLAGS += -D PROFILE
+# endif
 
 all: $(EXE)
 
@@ -24,5 +28,5 @@ clean:
 	rm -rf *.o sudoku
 
 # make clean
-# make or make DEBUG=1
+# make or make PROFILE=1
 # ./sudoku
