@@ -2,89 +2,20 @@
 
 #include "sudoku.h"
 
-const int block_width = SUB_N;
-const int block_height = SUB_N;
+#define NUM_TILES N * N
 
-void copy(int* host_data, Grid* grid){
-    for (int i = 0; i < N * N; i++)
-        host_data[i] = (*grid)[i / N][i % N];
-}
-
-void test(int* host_data, Grid* grid){
-    for (int i = 0; i < N * N; i++){
-        printf("%d ", host_data[i]);
-        if (i+1 % N == 0) printf("\n");
-    }
-    printf("====================================\n");
-    show_grid(grid);
-}
-
-__global__ void cuda_bfs(int* new_boards, int* old_boards, int* empty_spaces, int* empty_space_counts, int* board_index, int total_boards){
-    int x_index = blockIdx.x * blockDim.x + threadIdx.x; 
-    const int num_tiles = N * N;
-    const int offset = N * N * x_index;
-
-    while (x_index < total_boards) {
-        // find the next empty spot
-        bool found = false;
-
-        for (int i = (x_index * num_tiles); i < (x_index + 1) * num_tiles && !found; i++){
-            if (old_boards[i] != UNASSIGNED) continue;
-            
-            // if (old_board[i] == UNASSIGNED):
-            found = true;
-            const int real_id = i - offset; 
-            const int row = real_id / N;
-            const int col = real_id % N;
-
-            // find a suitable value to fill in
-            for (int value = 1; value <= N; value++){
-                bool can_fill_in = true;
-
-                // fix row, change column
-                for (int c = 0; c < N; c++){
-                    if (old_boards[row * N + c + offset] == value) { can_fill_in = false; break; }
-                }
-                if (!can_fill_in) continue;
-
-                // fix column, change row
-                for (int r = 0; r < N; r++){
-                    if (old_boards[r * N + col + offset] == value) { can_fill_in = false; break; }
-                }
-                if (!can_fill_in) continue;
-
-                // check box
-                // little strange
-                for (int r = (row /SUB_N) * SUB_N; r < SUB_N; r++){
-                    for (int c = (col / SUB_N) * SUB_N; c < SUB_N; c++){
-                        if (old_boards[r * N + c + offset] == value) { can_fill_in = false; break; }
-                    } 
-                }
-                if (!can_fill_in) continue;
-
-                int next_board_index = atomicAdd(board_index, 1);
-                int empty_index = 0;
-                for (int r = 0; r < N; r++){
-                    for (int c = 0; c < N; c++){
-                        new_boards[r * N + c + next_board_index * num_tiles] = old_boards[r * N + c + offset];
-                        if (old_boards[r * N + c + offset] == UNASSIGNED && (r != row || c != col)){
-                            empty_spaces[empty_index + next_board_index * num_tiles] = r * N + c;
-                            empty_index++;
-                        }
-                    }
-                }
-                empty_space_counts[next_board_index] = empty_index;
-                new_boards[row * N + col + next_board_index * num_tiles] = value;
-            }
-        }
-        x_index += blockDim.x * gridDim.x;
-    }
+void load(Grid* grid, int *board) {
+    for (int i = 0; i < NUM_TILES; i++)
+        board[i] = (*grid)[i / N][i % N];
 }
 
 void hostFE(Grid* grid){
-    // allocate init_board and copy grid to it
-    int *init_board = (int*) malloc(N * N * sizeof(int));
-    copy(init_board, grid);
+    const unsigned int threadsPerBlock = N;
+    const unsigned int maxBlocks = N; 
+
+    // load the board
+    int *board = new int[NUM_TILES];
+    load(grid, board);
 
     // the boards after the next iteration of breadth first search
     int *new_boards;
@@ -98,42 +29,97 @@ void hostFE(Grid* grid){
     int *board_index;
 
     // maximum number of boards from breadth first search
-    const int num_elements = 1 << 26;    
+    const int sk = 1 << 26;
 
-    // allocate memory
-    cudaMalloc(&new_boards, num_elements * sizeof(int));
-    cudaMalloc(&old_boards, num_elements * sizeof(int));
-    cudaMalloc(&empty_spaces, num_elements * sizeof(int));
-    cudaMalloc(&empty_space_count, (num_elements / (N * N) + 1) * sizeof(int));
+    // allocate memory on the device
+    cudaMalloc(&empty_spaces, sk * sizeof(int));
+    cudaMalloc(&empty_space_count, (sk / NUM_TILES + 1) * sizeof(int));
+    cudaMalloc(&new_boards, sk * sizeof(int));
+    cudaMalloc(&old_boards, sk * sizeof(int));
     cudaMalloc(&board_index, sizeof(int));
-    
+
+    // same as board index, except we need to set board_index to zero every time and this can stay
     int total_boards = 1;
 
     // initialize memory
-    cudaMemset(new_boards, UNASSIGNED, num_elements * sizeof(int));
-    cudaMemset(old_boards, UNASSIGNED, num_elements * sizeof(int));
     cudaMemset(board_index, 0, sizeof(int));
+    cudaMemset(new_boards, 0, sk * sizeof(int));
+    cudaMemset(old_boards, 0, sk * sizeof(int));
 
-    // copy init_board to old_boards
-    cudaMemcpy(old_boards, init_board, N * N * sizeof(int), cudaMemcpyHostToDevice);
+    // copy the initial board to the old boards
+    cudaMemcpy(old_boards, board, N * N * sizeof(int), cudaMemcpyHostToDevice);
 
-    return;
+    // call the kernel to generate boards
+    callBFSKernel(maxBlocks, threadsPerBlock, old_boards, new_boards, total_boards, board_index,
+        empty_spaces, empty_space_count);
 
-    const int size = N * N * sizeof(int);
-    int* host_data;
-    cudaHostAlloc(&host_data, size, cudaHostAllocMapped);
-    copy(host_data, grid);
-    //test(host_data, grid);
+    // number of boards after a call to BFS
+    int host_count;
+    // number of iterations to run BFS for
+    int iterations = 18;
 
-    size_t pitch;
-    int* device_data;
-    cudaMallocPitch(&device_data, &pitch, N * sizeof(int), N);
+    // loop through BFS iterations to generate more boards deeper in the tree
+    for (int i = 0; i < iterations; i++) {
+        cudaMemcpy(&host_count, board_index, sizeof(int), cudaMemcpyDeviceToHost);
 
-    dim3 thread_per_block(block_width, block_height);
-    dim3 num_blocks(N / thread_per_block.x, N / thread_per_block.y);
+        //printf("total boards after an iteration %d: %d\n", i, host_count);
 
-    cuda_solve<<<num_blocks, thread_per_block>>>();
+        cudaMemset(board_index, 0, sizeof(int));
 
-    cudaFreeHost(host_data);
-    cudaFree(device_data);
+
+        if (i % 2 == 0) {
+            callBFSKernel(maxBlocks, threadsPerBlock, new_boards, old_boards, host_count, board_index, empty_spaces, empty_space_count);
+        }
+        else {
+            callBFSKernel(maxBlocks, threadsPerBlock, old_boards, new_boards, host_count, board_index, empty_spaces, empty_space_count);
+        }
+    }
+
+    cudaMemcpy(&host_count, board_index, sizeof(int), cudaMemcpyDeviceToHost);
+    //printf("new number of boards retrieved is %d\n", host_count);
+
+    // flag to determine when a solution has been found
+    int *dev_finished;
+    // output to store solved board in
+    int *dev_solved;
+
+    // allocate memory on the device
+    cudaMalloc(&dev_finished, sizeof(int));
+    cudaMalloc(&dev_solved, N * N * sizeof(int));
+
+    // initialize memory
+    cudaMemset(dev_finished, 0, sizeof(int));
+    cudaMemcpy(dev_solved, board, N * N * sizeof(int), cudaMemcpyHostToDevice);
+
+    if (iterations % 2 == 1) {
+        // if odd number of iterations run, then send it old boards not new boards;
+        new_boards = old_boards;
+    }
+
+    cudaSudokuBacktrack(maxBlocks, threadsPerBlock, new_boards, host_count, empty_spaces,
+        empty_space_count, dev_finished, dev_solved);
+
+
+    // copy back the solved board
+    int *solved = new int[N * N];
+
+    memset(solved, 0, N * N * sizeof(int));
+
+    cudaMemcpy(solved, dev_solved, N * N * sizeof(int), cudaMemcpyDeviceToHost);
+
+    printBoard(solved);
+
+
+    // free memory
+    delete[] board;
+    delete[] solved;
+
+    cudaFree(empty_spaces);
+    cudaFree(empty_space_count);
+    cudaFree(new_boards);
+    cudaFree(old_boards);
+    cudaFree(board_index);
+
+    cudaFree(dev_finished);
+    cudaFree(dev_solved);
 }
