@@ -121,15 +121,15 @@ bool validBoard(const int *board) {
 __device__
 bool validBoard(const int *board, int changed) {
 
-    int r = changed / 9;
-    int c = changed % 9;
+    int r = changed / N;
+    int c = changed % N;
 
     // if changed is less than 0, then just default case
     if (changed < 0) {
         return validBoard(board);
     }
 
-    if ((board[changed] < 1) || (board[changed] > 9)) {
+    if ((board[changed] < 1) || (board[changed] > N)) {
         return false;
     }
 
@@ -227,8 +227,8 @@ void sudokuBacktrack(int *boards,
     
         int emptyIndex = 0;
 
-        currentBoard = boards + index * 81;
-        currentEmptySpaces = emptySpaces + index * 81;
+        currentBoard = boards + index * NUM_TILES;
+        currentEmptySpaces = emptySpaces + index * NUM_TILES;
         currentNumEmptySpaces = numEmptySpaces[index];
 
         while ((emptyIndex >= 0) && (emptyIndex < currentNumEmptySpaces)) {
@@ -239,7 +239,7 @@ void sudokuBacktrack(int *boards,
 
                 // if the board is invalid and we tried all numbers here already, backtrack
                 // otherwise continue (it will just try the next number in the next iteration)
-                if (currentBoard[currentEmptySpaces[emptyIndex]] >= 9) {
+                if (currentBoard[currentEmptySpaces[emptyIndex]] >= N) {
                     currentBoard[currentEmptySpaces[emptyIndex]] = 0;
                     emptyIndex--;
                 }
@@ -352,18 +352,18 @@ cudaBFSKernel(int *old_boards,
 
                         int next_board_index = atomicAdd(board_index, 1);
                         int empty_index = 0;
-                        for (int r = 0; r < 9; r++) {
-                            for (int c = 0; c < 9; c++) {
-                                new_boards[next_board_index * 81 + r * 9 + c] = old_boards[index * 81 + r * 9 + c];
-                                if (old_boards[index * 81 + r * 9 + c] == 0 && (r != row || c != col)) {
-                                    empty_spaces[empty_index + 81 * next_board_index] = r * 9 + c;
+                        for (int r = 0; r < N; r++) {
+                            for (int c = 0; c < N; c++) {
+                                new_boards[next_board_index * NUM_TILES + r * N + c] = old_boards[index * NUM_TILES + r * N + c];
+                                if (old_boards[index * NUM_TILES + r * N + c] == 0 && (r != row || c != col)) {
+                                    empty_spaces[empty_index + NUM_TILES * next_board_index] = r * N + c;
 
                                     empty_index++;
                                 }
                             }
                         }
                         empty_space_count[next_board_index] = empty_index;
-                        new_boards[next_board_index * 81 + row * 9 + col] = attempt;
+                        new_boards[next_board_index * NUM_TILES + row * N + col] = attempt;
                     }
                 }
             }
@@ -387,8 +387,8 @@ void callBFSKernel(const unsigned int blocks,
 }
 
 void hostFE(Grid* grid){
-    const unsigned int threadsPerBlock = N;
-    const unsigned int maxBlocks = N; 
+    const unsigned int threadsPerBlock = SUB_N;
+    const unsigned int maxBlocks = SUB_N; 
 
     // load the board
     int *board = new int[NUM_TILES];
@@ -433,7 +433,7 @@ void hostFE(Grid* grid){
     // number of boards after a call to BFS
     int host_count;
     // number of iterations to run BFS for
-    int iterations = 18;
+    int iterations = 2 * N;
 
     // loop through BFS iterations to generate more boards deeper in the tree
     for (int i = 0; i < iterations; i++) {
