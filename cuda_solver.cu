@@ -29,6 +29,16 @@ void printBoard(int *board) {
 }
 
 /**
+ * This function takes in a bitmap and clears them all to false.
+ */
+__device__
+void clearBitmap(bool *map, int size) {
+    for (int i = 0; i < size; i++) {
+        map[i] = false;
+    }
+}
+
+/**
  * This device checks the entire board to see if it is valid.
  *
  * board: this is a N * N sized array that stores the board to check. Rows are stored contiguously,
