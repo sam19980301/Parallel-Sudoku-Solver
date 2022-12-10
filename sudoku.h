@@ -8,13 +8,18 @@
 #define N ((SUB_N) * (SUB_N))
 #define UNASSIGNED 0
 
-typedef int Grid[N][N];
-// typedef struct
-// {
-//     int grid_val[N][N];
-//     int unknown;
-// } Grid;
-typedef int Markup[N][N];
+typedef int GridVal[N][N];
+typedef struct
+{
+    GridVal grid_val;
+    int unknown;
+} Grid;
+typedef int MarkupVal[N][N];
+typedef struct
+{
+    MarkupVal markup_val;
+    MarkupVal count;
+} Markup;
 // the n th bit of Markup[i][j]: possible / not possible to fill in n-1 into i th row, j th column 
 typedef struct
 {
@@ -52,11 +57,20 @@ int is_safe(const Grid *grid, int row, int col, int num);
 
 // markup function
 inline int markup_contain(Markup *markup, int row, int col, int val){
-    return ((*markup)[row][col] >> (val-1)) & 1;
+    return (markup->markup_val[row][col] >> (val-1)) & 1;
 }
 inline void remove_from_markup(Markup *markup, int row, int col, int val){
-    (*markup)[row][col] &= ~(1 << (val-1));
+    if (markup->markup_val[row][col] & (1 << (val-1)))
+        markup->count[row][col]--;
+    markup->markup_val[row][col] &= ~(1 << (val-1));
 } // or return whether or not the original bit is set
+// inline int markup_count_values(Markup *markup, int row, int col){
+//     int cnt = 0;
+//     for (int i = 0; i < N; i++)
+//         if ((markup->markup_val[row][col] >> i) & 1)
+//             cnt++;
+//     return cnt;
+// }
 
 // heap function
 // copy heap
@@ -72,6 +86,7 @@ inline void heap_push(Heap *heap, Cell *cell, Markup *markup, Grid *grid){
     heap->guess++;
     heap->depth++;
     heap->max_depth = (heap->max_depth > heap->depth) ? heap->max_depth : heap->depth;
+    // printf("%d %d %d\n", cell->row, cell->col, cell->val);
 }
 // undo a single guess: pop the top cell and restore originally saved markup and grid
 inline void heap_pop(Heap *heap, Cell *cell, Markup *markup, Grid *grid){
@@ -85,10 +100,13 @@ inline void heap_pop(Heap *heap, Cell *cell, Markup *markup, Grid *grid){
 // sudoku function
 void sudoku_reset(Sudoku *sudoku);
 inline void set_value(Sudoku *sudoku, int row, int col, int val){
+    if (sudoku->grid.grid_val[row][col] == UNASSIGNED)
+        sudoku->grid.unknown--;
     int start_row = (row / SUB_N) * SUB_N;
     int start_col = (col / SUB_N) * SUB_N;
-    sudoku->grid[row][col] = val;
-    sudoku->markup[row][col] = 0;
+    sudoku->grid.grid_val[row][col] = val;
+    sudoku->markup.markup_val[row][col] = 0;
+    sudoku->markup.count[row][col] = 0;
     for (int i = 0; i < N; i++)
     {
         remove_from_markup(&sudoku->markup, row, i, val);
@@ -97,14 +115,16 @@ inline void set_value(Sudoku *sudoku, int row, int col, int val){
     }
 }
 inline void unset_value(Sudoku *sudoku, int row, int col){
-    sudoku->grid[row][col] = UNASSIGNED;
+    if (sudoku->grid.grid_val[row][col] != UNASSIGNED)
+        sudoku->grid.unknown++;
+    sudoku->grid.grid_val[row][col] = UNASSIGNED;
 }
 // copy entire sudoku excluding its heap, in case of backtracking
 inline void copy_sudoku(Sudoku *dest, Sudoku *src) {
     if (dest == src)
         return;
     memcpy(&dest->grid, &src->grid, sizeof(Grid));
-    memcpy(dest->markup, src->markup, sizeof(Markup));
+    memcpy(&dest->markup, &src->markup, sizeof(Markup));
 }
 
 // crook's algorithm (seach space pruning): elimination, lone ranger, twins and triplets
@@ -125,7 +145,7 @@ int validate_solution(const Grid *grid);
 void read_single_problem(Sudoku *sudoku, FILE *file_ptr);
 
 // defined for each solver
-// extern int solve(Sudoku *sudoku);
-extern int solve(Sudoku *sudoku_head, int num_thread, double *elapsed_time);
+extern int solve(Sudoku *sudoku);
+// extern int solve(Sudoku *sudoku_head, int num_thread, double *elapsed_time);
 
 #endif //__SUDOKU_H__

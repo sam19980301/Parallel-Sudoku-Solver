@@ -7,11 +7,12 @@ void show_grid(const Grid *grid){
     {
         for (int j = 0; j < N; j++)
         {
-            printf("%d\t", (*grid)[i][j]);
+            printf("%d\t", grid->grid_val[i][j]);
         }
         printf("\n");
     }
     printf("\n");
+    printf("Unknown Count:%d\n",grid->unknown);
 }
 
 void show_heap(const Heap *heap){
@@ -36,7 +37,7 @@ void show_markup(const Markup *markup){
     {
         for (int j = 0; j < N; j++)
         {
-            printf("Row%d\tCol%d\tMarkup in oct %o\n", i, j, (*markup)[i][j]);
+            printf("Row%d\tCol%d\tMarkup in hex %x\t Count%d\n", i, j, markup->markup_val[i][j], markup->count[i][j]);
         }
         
     }
@@ -54,53 +55,53 @@ void show_sudoku(const Sudoku *sudoku){
 
 // Check whether an insertion is legal
 int is_safe(const Grid *grid, int row, int col, int num){
+    const GridVal *gridval = &(grid->grid_val);
     // check is filled or not
-    if ((*grid)[row][col] != UNASSIGNED)
+    if ((*gridval)[row][col] != UNASSIGNED)
         return 0;
     // check row
     // printf("Check Row\n");
     for (int i = 0; i < N; i++)
-        if ((*grid)[row][i] == num)
+        if ((*gridval)[row][i] == num)
             return 0;
     // check col
     // printf("Check Column\n");
     for (int i = 0; i < N; i++)
-        if ((*grid)[i][col] == num)
+        if ((*gridval)[i][col] == num)
             return 0;
     // check sub-grid
     // printf("Check Sub-Grid\n");
     int start_row = (row / SUB_N) * SUB_N;
     int start_col = (col / SUB_N) * SUB_N;
     for (int i = 0; i < SUB_N; i++)
-        for (int j = 0; j < SUB_N; j++){
-            if ((*grid)[start_row + i][start_col + j] == num){
+        for (int j = 0; j < SUB_N; j++)
+            if ((*gridval)[start_row + i][start_col + j] == num)
                 return 0;
-            }
-        }
     return 1;
 }
 
 // Validate correctness of solution
 int validate_solution(const Grid *grid){
+    const GridVal *gridval = &(grid->grid_val);
     for (int row = 0; row < N; row++){
         for (int col = 0; col < N; col++){
             // UNFINISHED
-            if ((*grid)[row][col] == UNASSIGNED)
+            if ((*gridval)[row][col] == UNASSIGNED)
                 return 0;
             // Check row
             for (int i = 0; i < N; i++)
-                if (((*grid)[row][col] == (*grid)[row][i]) && (col != i))
+                if (((*gridval)[row][col] == (*gridval)[row][i]) && (col != i))
                     return 0;
             // Check column
             for (int i = 0; i < N; i++)
-                if (((*grid)[row][col] == (*grid)[i][col]) && (row != i))
+                if (((*gridval)[row][col] == (*gridval)[i][col]) && (row != i))
                     return 0;
             // Check sub-grid
             int start_row = (row / SUB_N) * SUB_N;
             int start_col = (col / SUB_N) * SUB_N;
             for (int i = 0; i < SUB_N; i++)
                 for (int j = 0; j < SUB_N; j++)
-                    if (((*grid)[row][col] == (*grid)[start_row + i][start_col + j]) && (row%SUB_N != i) && (col%SUB_N != j))
+                    if (((*gridval)[row][col] == (*gridval)[start_row + i][start_col + j]) && (row%SUB_N != i) && (col%SUB_N != j))
                         return 0;
         }
     }
@@ -114,14 +115,16 @@ void sudoku_reset(Sudoku *sudoku){
 
     for (int row = 0; row < N; row++){
         for (int col = 0; col < N; col++){
-            (*grid)[row][col] = UNASSIGNED;
-            (*markup)[row][col] = 0;
+            grid->grid_val[row][col] = UNASSIGNED;
+            markup->markup_val[row][col] = 0;
+            markup->count[row][col] = N;
             for (int v = 0; v < N; v++)
             {
-                (*markup)[row][col] |= (1 << v);
+                markup->markup_val[row][col] |= (1 << v);
             }
         }
     }
+    grid->unknown = N * N;
     heap->count = 0;
     heap->guess = 0;
     heap->depth = 0;
@@ -139,7 +142,7 @@ int elimination(Sudoku *sudoku){
             int cnt = 0, ind = 0;
             for (int k = 0; k < N; k++)
             {
-                if (((*markup)[i][j] >> k) & 1){
+                if ((markup->markup_val[i][j] >> k) & 1){
                     cnt++;
                     ind = k;
                 }
@@ -244,19 +247,38 @@ void crook_pruning(Sudoku *sudoku){
 
 void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
     char ch;
-    for (int i = 0; i < N; i++)
+    if (SUB_N == 3) // different input format according to SUB_N
     {
-        for (int j = 0; j < N; j++)
+        for (int i = 0; i < N; i++)
         {
-            ch = fgetc(file_ptr);
-            while ((ch != '.') && (!((ch >= '1') && (ch <= '9'))) && (!((ch >= 'A') && (ch <= 'G'))))
+            for (int j = 0; j < N; j++)
+            {
                 ch = fgetc(file_ptr);
-            if (ch == '.')
-                sudoku->grid[i][j] = UNASSIGNED;
-            else if ((ch >= '1') && (ch <= '9'))
-                set_value(sudoku, i, j, ch-'0');
-            else
-                set_value(sudoku, i, j, ch-'A'+10);
+                while ((ch != '.') && (!((ch >= '1') && (ch <= '9'))))
+                    ch = fgetc(file_ptr);
+                if (ch == '.')
+                    sudoku->grid.grid_val[i][j] = UNASSIGNED;
+                else
+                    set_value(sudoku, i, j, ch-'0');
+            }
+        }
+    }
+    else if (SUB_N == 4)
+    {
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < N; j++)
+            {
+                ch = fgetc(file_ptr);
+                while ((ch != '.') && (!((ch >= '1') && (ch <= '9'))) && (!((ch >= 'A') && (ch <= 'P'))))
+                    ch = fgetc(file_ptr);
+                if (ch == '.')
+                    sudoku->grid.grid_val[i][j] = UNASSIGNED;
+                else if ((ch >= '1') && (ch <= '9'))
+                    set_value(sudoku, i, j, ch-'0');
+                else
+                    set_value(sudoku, i, j, ch-'A'+1);
+            }
         }
     }
 }

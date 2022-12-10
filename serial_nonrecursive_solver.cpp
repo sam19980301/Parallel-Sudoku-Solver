@@ -8,10 +8,11 @@ int solve(Sudoku *sudoku){
     Cell top_cell;
     int row = 0, col = 0, val;
     int find_safe_insertion;
+    
     while (row != N)
     {
         find_safe_insertion = 0;
-        if ((*grid)[row][col] == UNASSIGNED){
+        if (grid->grid_val[row][col] == UNASSIGNED){
             for (int v = 1; v <= N; v++){
                 if (is_safe(grid, row, col, v)){
                     // find safe insertion
@@ -56,7 +57,7 @@ int solve(Sudoku *sudoku){
 //         return 1;
 //     int next_row = row + (col == N-1), next_col = (col + 1)%N;
 //     // skip if assigned
-//     if ((*grid)[row][col] != UNASSIGNED)
+//     if (grid->grid_val[row][col] != UNASSIGNED)
 //         return serial_recursive_solver(grid, next_row, next_col);
 //     // try all possible value
 //     for (int v = 1; v <= N; ++v){
@@ -75,7 +76,7 @@ int solve(Sudoku *sudoku){
 //             #endif
 //         }
 //         // undo guess
-//         (*grid)[row][col] = UNASSIGNED;
+//         grid->grid_val[row][col] = UNASSIGNED;
 //     }
 //     return 0;
 // }

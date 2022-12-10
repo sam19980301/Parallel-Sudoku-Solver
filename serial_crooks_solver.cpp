@@ -15,10 +15,10 @@ int solve(Sudoku *sudoku){
     while (row != N)
     {
         find_safe_insertion = 0;
-        if ((*grid)[row][col] == UNASSIGNED){
-            if ((*markup)[row][col]){
+        if (grid->grid_val[row][col] == UNASSIGNED){
+            if (markup->markup_val[row][col]){
                 for (int v = 1; v <= N; v++){
-                    if ((*markup)[row][col] & (1 << (v-1))){
+                    if (markup_contain(markup, row, col, v)){
                         // find safe insertion, make a guess
                         Cell cell = {row, col, v};
                         heap_push(heap, &cell, &sudoku->markup, &sudoku->grid);
@@ -42,7 +42,7 @@ int solve(Sudoku *sudoku){
                 unset_value(sudoku, row, col);
                 for (val =  top_cell.val + 1; val <= N; val++)
                 {
-                    if ((*markup)[row][col] & (1 << (val-1))){
+                    if (markup_contain(markup, row, col, val)){
                         Cell cell = {row, col, val};
                         heap_push(heap, &cell, &sudoku->markup, &sudoku->grid);
                         set_value(sudoku, row, col, val);
