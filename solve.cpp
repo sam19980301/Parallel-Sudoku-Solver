@@ -15,6 +15,25 @@
 
 void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
     int unknown = 0, total = 0;
+    bool new_version = true;
+    if (new_version){
+        char problem[N*N*10];
+        fscanf(file_ptr, "%s", problem);
+        for (int i = 0; i < N * N; i++)
+        {
+            if (problem[i] == '0') {
+                sudoku->grid[i / N][i % N] = UNASSIGNED;
+                unknown++;
+            }
+            else {
+                sudoku->grid[i / N][i % N] = problem[i] - 'A' + 1;
+            }
+            total++;
+        }
+        printf("%d tokens read from file with %d unknowns.\n", total, unknown);
+        return;
+    }
+
     if(SUB_N>3) 
     {
         std::cout << "parsing input..." << std::endl;
@@ -103,6 +122,7 @@ int main(int argc, char *argv[])
         if (!validate_solution(&sudoku.grid)){
             printf("Wrong answer\n");
             // show_sudoku(&sudoku);
+            show_grid(&sudoku.grid);
             exit(1);
         }
 
