@@ -1,9 +1,9 @@
-#ifndef KERNEL_H_
-#define KERNEL_H_ 
+#ifndef CUDA_SOLVER_H_
+#define CUDA_SOLVER_H_ 
 
 #include "sudoku.h"
 
 //extern "C"
 void hostFE(Grid* grid);
 
-#endif /* KERNEL_H_ */
+#endif /* CUDA_SOLVER_H_ */
