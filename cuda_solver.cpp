@@ -2,6 +2,6 @@
 #include "sudoku.h"
 
 int solve(Sudoku *sudoku){
-    hostFE(&sudoku->grid);
+    hostFE(sudoku);
     return 1;
 }

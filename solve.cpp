@@ -103,6 +103,7 @@ int main(int argc, char *argv[])
         if (!validate_solution(&sudoku.grid)){
             printf("Wrong answer\n");
             // show_sudoku(&sudoku);
+            show_grid(&sudoku.grid);
             exit(1);
         }
 

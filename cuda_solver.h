@@ -4,6 +4,6 @@
 #include "sudoku.h"
 
 //extern "C"
-void hostFE(Grid* grid);
+void hostFE(Sudoku* sudoku);
 
 #endif /* CUDA_SOLVER_H_ */

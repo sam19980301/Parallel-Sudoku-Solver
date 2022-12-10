@@ -2,501 +2,114 @@
 
 #include "sudoku.h"
 
-#define NUM_TILES N * N
-#define n SUB_N
-
-void load(Grid* grid, int *board) {
-    for (int i = 0; i < NUM_TILES; i++)
-        board[i] = (*grid)[i / N][i % N];
-}
-
-void printBoard(int *board) {
-    for (int i = 0; i < N; i++) {
-        if (i % n == 0) {
-            printf("-----------------------\n");
-        }
-
-        for (int j = 0; j < N; j++) {
-            if (j % n == 0) {
-            printf("| ");
+// Check whether an insertion is legal
+__device__ int cuda_is_safe(const Grid *grid, int row, int col, int num){
+    // check is filled or not
+    if ((*grid)[row][col] != UNASSIGNED)
+        return 0;
+    // check row
+    // printf("Check Row\n");
+    for (int i = 0; i < N; i++)
+        if ((*grid)[row][i] == num)
+            return 0;
+    // check col
+    // printf("Check Column\n");
+    for (int i = 0; i < N; i++)
+        if ((*grid)[i][col] == num)
+            return 0;
+    // check sub-grid
+    // printf("Check Sub-Grid\n");
+    int start_row = (row / SUB_N) * SUB_N;
+    int start_col = (col / SUB_N) * SUB_N;
+    for (int i = 0; i < SUB_N; i++)
+        for (int j = 0; j < SUB_N; j++){
+            if ((*grid)[start_row + i][start_col + j] == num){
+                return 0;
             }
-            printf("%d ", board[i * N + j]);
         }
-
-        printf("|\n");
-    }
-    printf("-----------------------\n");
+    return 1;
 }
 
-/**
- * This function takes in a bitmap and clears them all to false.
- */
-__device__
-void clearBitmap(bool *map, int size) {
-    for (int i = 0; i < size; i++) {
-        map[i] = false;
-    }
+// make a single guess: store the guess info (row, col and val wrapped with a cell), current markup and current grid
+__device__ inline void cuda_heap_push(Heap *heap, Cell *cell, Markup *markup, Grid *grid){
+    heap->cell_arr[heap->count].cell = *cell;
+    memcpy(&heap->cell_arr[heap->count].orig_markup, markup, sizeof(Markup));
+    memcpy(&heap->cell_arr[heap->count].orig_grid, grid, sizeof(Grid));
+    heap->count++;
 }
 
-/**
- * This device checks the entire board to see if it is valid.
- *
- * board: this is a N * N sized array that stores the board to check. Rows are stored contiguously,
- *        so to access row r and col c, use board[r * N + c]
- */
-__device__
-bool validBoard(const int *board) {
-    bool seen[N];
-    clearBitmap(seen, N);
+// undo a single guess: pop the top cell and restore originally saved markup and grid
+__device__ inline void cuda_heap_pop(Heap *heap, Cell *cell, Markup *markup, Grid *grid){
+    heap->count--;
+    *cell = heap->cell_arr[heap->count].cell;
+    memcpy(markup, &heap->cell_arr[heap->count].orig_markup, sizeof(Markup));
+    memcpy(grid, &heap->cell_arr[heap->count].orig_grid, sizeof(Grid));
+}
 
-    // check if rows are valid
-    for (int i = 0; i < N; i++) {
-        clearBitmap(seen, N);
-
-        for (int j = 0; j < N; j++) {
-            int val = board[i * N + j];
-
-            if (val != 0) {
-                if (seen[val - 1]) {
-                    return false;
-                } else {
-                    seen[val - 1] = true;
+// serialized & non-recursive solver
+__global__ void non_recursive_solve(Sudoku *sudoku, int *can_solve){
+    Grid *grid = &sudoku->grid;
+    Heap *heap = &sudoku->heap;
+    Cell top_cell;
+    int row = 0, col = 0, val;
+    int find_safe_insertion;
+    while (row != N)
+    {
+        find_safe_insertion = 0;
+        if ((*grid)[row][col] == UNASSIGNED){
+            for (int v = 1; v <= N; v++){
+                if (cuda_is_safe(grid, row, col, v)){
+                    // find safe insertion
+                    Cell cell = {row, col, v};
+                    cuda_heap_push(heap, &cell, &sudoku->markup, &sudoku->grid);
+                    (*grid)[row][col] = v;
+                    find_safe_insertion = 1;
+                    break;
                 }
             }
-        }
-    }
-
-    // check if columns are valid
-    for (int j = 0; j < N; j++) {
-        clearBitmap(seen, N);
-
-        for (int i = 0; i < N; i++) {
-            int val = board[i * N + j];
-
-            if (val != 0) {
-                if (seen[val - 1]) {
-                    return false;
-                } else {
-                    seen[val - 1] = true;
+            while (!find_safe_insertion){
+                if (heap->count == 0){
+                    *can_solve = 0;
+                    return;
                 }
-            }
-        }
-    }
-
-    // finally check if the sub-boards are valid
-    for (int ridx = 0; ridx < n; ridx++) {
-        for (int cidx = 0; cidx < n; cidx++) {
-            clearBitmap(seen, N);
-
-            for (int i = 0; i < n; i++) {
-                for (int j = 0; j < n; j++) {
-                    int val = board[(ridx * n + i) * N + (cidx * n + j)];
-
-                    if (val != 0) {
-                        if (seen[val - 1]) {
-                            return false;
-                        } else {
-                            seen[val-1] = true;
-                        }
+                // fail to find safe insertion, backtrack
+                // try other value for the top cell
+                cuda_heap_pop(heap, &top_cell, &sudoku->markup, &sudoku->grid);
+                row = top_cell.row;
+                col = top_cell.col;
+                (*grid)[row][col] = UNASSIGNED;
+                for (val =  top_cell.val + 1; val <= N; val++)
+                {
+                    if (cuda_is_safe(grid, row, col, val)){
+                        (*grid)[row][col] = val;
+                        Cell cell = {row, col, val};
+                        cuda_heap_push(heap, &cell, &sudoku->markup, &sudoku->grid);
+                        find_safe_insertion = 1;
+                        break;
                     }
                 }
             }
         }
+        row = row + (col == N-1);
+        col = (col + 1)%N;
     }
-
-
-    // if we get here, then the board is valid
-    return true;
+    *can_solve = 1;
 }
 
-/**
- * This function takes a board and an index between 0 and N * N - 1. This function assumes the board
- * without the value at changed is valid and checks for validity given the new change.
- *
- * board:   this is a N * N sized array that stores the board to check. Rows are stored
- *          contiguously, so to access row r and col c, use board[r * N + c]
- *
- * changed: this is an integer that stores the index of the board that was changed
- */
-__device__
-bool validBoard(const int *board, int changed) {
-
-    int r = changed / N;
-    int c = changed % N;
-
-    // if changed is less than 0, then just default case
-    if (changed < 0) {
-        return validBoard(board);
-    }
-
-    if ((board[changed] < 1) || (board[changed] > N)) {
-        return false;
-    }
-
-    bool seen[N];
-    clearBitmap(seen, N);
-
-    // check if row is valid
-    for (int i = 0; i < N; i++) {
-        int val = board[r * N + i];
-
-        if (val != 0) {
-            if (seen[val - 1]) {
-                return false;
-            } else {
-                seen[val - 1] = true;
-            }
-        }
-    }
-
-    // check if column is valid
-    clearBitmap(seen, N);
-    for (int j = 0; j < N; j++) {
-        int val = board[j * N + c];
-
-        if (val != 0) {
-            if (seen[val - 1]) {
-                return false;
-            } else {
-                seen[val - 1] = true;
-            }
-        }
-    }
-
-    // finally check if the sub-board is valid
-    int ridx = r / n;
-    int cidx = c / n;
-
-    clearBitmap(seen, N);
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            int val = board[(ridx * n + i) * N + (cidx * n + j)];
-
-            if (val != 0) {
-                if (seen[val - 1]) {
-                    return false;
-                } else {
-                    seen[val - 1] = true;
-                }
-            }
-        }
-    }
-
-    // if we get here, then the board is valid
-    return true;
-}
-
-/**
- * This kernel has each thread try to solve a different board in the input array using the
- * backtracking algorithm.
- *
- * boards:      This is an array of size numBoards * N * N. Each board is stored contiguously,
- *              and rows are contiguous within the board. So, to access board x, row r, and col c,
- *              use boards[x * N * N + r * N + c]
- *
- * numBoards:   The total number of boards in the boards array.
- *
- * emptySpaces: This is an array of size numBoards * N * N. board is stored contiguously, and stores
- *              the indices of the empty spaces in that board. Note that this N * N pieces may not
- *              be filled.
- *
- * numEmptySpaces:  This is an array of size numBoards. Each value stores the number of empty spaces
- *                  in the corresponding board.
- *
- * finished:    This is a flag that determines if a solution has been found. This is a stopping
- *              condition for the kernel.
- *
- * solved:      This is an output array of size N * N where the solved board is stored.
- */
-__global__
-void sudokuBacktrack(int *boards,
-        const int numBoards,
-        int *emptySpaces,
-        int *numEmptySpaces,
-        int *finished,
-        int *solved) {
-
-    int index = blockDim.x * blockIdx.x + threadIdx.x;
-
-    int *currentBoard;
-    int *currentEmptySpaces;
-    int currentNumEmptySpaces;
-
-
-    while ((*finished == 0) && (index < numBoards)) {
-    
-        int emptyIndex = 0;
-
-        currentBoard = boards + index * NUM_TILES;
-        currentEmptySpaces = emptySpaces + index * NUM_TILES;
-        currentNumEmptySpaces = numEmptySpaces[index];
-
-        while ((emptyIndex >= 0) && (emptyIndex < currentNumEmptySpaces)) {
-
-            currentBoard[currentEmptySpaces[emptyIndex]]++;
-
-            if (!validBoard(currentBoard, currentEmptySpaces[emptyIndex])) {
-
-                // if the board is invalid and we tried all numbers here already, backtrack
-                // otherwise continue (it will just try the next number in the next iteration)
-                if (currentBoard[currentEmptySpaces[emptyIndex]] >= N) {
-                    currentBoard[currentEmptySpaces[emptyIndex]] = 0;
-                    emptyIndex--;
-                }
-            }
-            // if valid board, move forward in algorithm
-            else {
-                emptyIndex++;
-            }
-
-        }
-
-        if (emptyIndex == currentNumEmptySpaces) {
-            // solved board found
-            *finished = 1;
-
-            // copy board to output
-            for (int i = 0; i < N * N; i++) {
-                solved[i] = currentBoard[i];
-            }
-        }
-
-        index += gridDim.x * blockDim.x;
-    }
-}
-
-void cudaSudokuBacktrack(const unsigned int blocks,
-        const unsigned int threadsPerBlock,
-        int *boards,
-        const int numBoards,
-        int *emptySpaces,
-        int *numEmptySpaces,
-        int *finished,
-        int *solved) {
-
-    sudokuBacktrack<<<blocks, threadsPerBlock>>>
-        (boards, numBoards, emptySpaces, numEmptySpaces, finished, solved);
-}
-
-/**
- * This kernel takes a set of old boards and finds all possible next boards by filling in the next
- * empty space.
- *
- * old_boards:      This is an array of size sk. Each N * N section is another board. The rows
- *                  are contiguous within the board. This array stores the previous set of boards.
- *
- * new_boards:      This is an array of size sk. Each N * N section is another board. The rows
- *                  are contiguous within the board. This array stores the next set of boards.
- *
- * total_boards:    Number of old boards.
- *
- * board_index:     Index specifying the index of the next opening in new_boards.
- *
- * empty_spaces:    This is an array of size sk. Each N * N section is another board, storing the
- *                  indices of empty spaces in new_boards.
- *
- * empty_space_count:   This is an array of size sk / N / N + 1 which stores the number of empty
- *                      spaces in the corresponding board.
- */
-__global__
-void
-cudaBFSKernel(int *old_boards,
-        int *new_boards,
-        int total_boards,
-        int *board_index,
-        int *empty_spaces,
-        int *empty_space_count) {
-    
-    unsigned int index = blockIdx.x * blockDim.x + threadIdx.x;
-    
-    // board_index must start at zero 
-
-    while (index < total_boards) {
-        // find the next empty spot
-        int found = 0;
-
-        for (int i = (index * N * N); (i < (index * N * N) + N * N) && (found == 0); i++) {
-            // found a open spot
-            if (old_boards[i] == 0) {
-                found = 1;
-                // get the correct row and column shits
-                int temp = i - N * N * index;
-                int row = temp / N;
-                int col = temp % N;
-                
-                // figure out which numbers work here
-                for (int attempt = 1; attempt <= N; attempt++) {
-                    int works = 1;
-                    // row constraint, test various columns
-                    for (int c = 0; c < N; c++) {
-                        if (old_boards[row * N + c + N * N * index] == attempt) {
-                            works = 0;
-                        }
-                    }
-                    // column contraint, test various rows
-                    for (int r = 0; r < N; r++) {
-                        if (old_boards[r * N + col + N * N * index] == attempt) {
-                            works = 0;
-                        }
-                    }
-                    // box constraint
-                    for (int r = n * (row / n); r < n; r++) {
-                        for (int c = n * (col / n); c < n; c++) {
-                            if (old_boards[r * N + c + N * N * index] == attempt) {
-                                works = 0;
-                            }
-                        }
-                    }
-                    if (works == 1) {
-                        // copy the whole board
-
-                        int next_board_index = atomicAdd(board_index, 1);
-                        int empty_index = 0;
-                        for (int r = 0; r < N; r++) {
-                            for (int c = 0; c < N; c++) {
-                                new_boards[next_board_index * NUM_TILES + r * N + c] = old_boards[index * NUM_TILES + r * N + c];
-                                if (old_boards[index * NUM_TILES + r * N + c] == 0 && (r != row || c != col)) {
-                                    empty_spaces[empty_index + NUM_TILES * next_board_index] = r * N + c;
-
-                                    empty_index++;
-                                }
-                            }
-                        }
-                        empty_space_count[next_board_index] = empty_index;
-                        new_boards[next_board_index * NUM_TILES + row * N + col] = attempt;
-                    }
-                }
-            }
-        }
-
-        index += blockDim.x * gridDim.x;
-    }
-}
-
-
-void callBFSKernel(const unsigned int blocks, 
-                        const unsigned int threadsPerBlock,
-                        int *old_boards,
-                        int *new_boards,
-                        int total_boards,
-                        int *board_index,
-                        int *empty_spaces,
-                        int *empty_space_count) {
-    cudaBFSKernel<<<blocks, threadsPerBlock>>>
-        (old_boards, new_boards, total_boards, board_index, empty_spaces, empty_space_count);
-}
-
-void hostFE(Grid* grid){
-    const unsigned int threadsPerBlock = SUB_N;
-    const unsigned int maxBlocks = SUB_N; 
-
-    // load the board
-    int *board = new int[NUM_TILES];
-    load(grid, board);
-
-    // the boards after the next iteration of breadth first search
-    int *new_boards;
-    // the previous boards, which formthe frontier of the breadth first search
-    int *old_boards;
-    // stores the location of the empty spaces in the boards
-    int *empty_spaces;
-    // stores the number of empty spaces in each board
-    int *empty_space_count;
-    // where to store the next new board generated
-    int *board_index;
-
-    // maximum number of boards from breadth first search
-    const int sk = 1 << 26;
-
-    // allocate memory on the device
-    cudaMalloc(&empty_spaces, sk * sizeof(int));
-    cudaMalloc(&empty_space_count, (sk / NUM_TILES + 1) * sizeof(int));
-    cudaMalloc(&new_boards, sk * sizeof(int));
-    cudaMalloc(&old_boards, sk * sizeof(int));
-    cudaMalloc(&board_index, sizeof(int));
-
-    // same as board index, except we need to set board_index to zero every time and this can stay
-    int total_boards = 1;
-
-    // initialize memory
-    cudaMemset(board_index, 0, sizeof(int));
-    cudaMemset(new_boards, 0, sk * sizeof(int));
-    cudaMemset(old_boards, 0, sk * sizeof(int));
-
-    // copy the initial board to the old boards
-    cudaMemcpy(old_boards, board, N * N * sizeof(int), cudaMemcpyHostToDevice);
-
-    // call the kernel to generate boards
-    callBFSKernel(maxBlocks, threadsPerBlock, old_boards, new_boards, total_boards, board_index,
-        empty_spaces, empty_space_count);
-
-    // number of boards after a call to BFS
-    int host_count;
-    // number of iterations to run BFS for
-    int iterations = 2 * N;
-
-    // loop through BFS iterations to generate more boards deeper in the tree
-    for (int i = 0; i < iterations; i++) {
-        cudaMemcpy(&host_count, board_index, sizeof(int), cudaMemcpyDeviceToHost);
-
-        //printf("total boards after an iteration %d: %d\n", i, host_count);
-
-        cudaMemset(board_index, 0, sizeof(int));
-
-
-        if (i % 2 == 0) {
-            callBFSKernel(maxBlocks, threadsPerBlock, new_boards, old_boards, host_count, board_index, empty_spaces, empty_space_count);
-        }
-        else {
-            callBFSKernel(maxBlocks, threadsPerBlock, old_boards, new_boards, host_count, board_index, empty_spaces, empty_space_count);
-        }
-    }
-
-    cudaMemcpy(&host_count, board_index, sizeof(int), cudaMemcpyDeviceToHost);
-    //printf("new number of boards retrieved is %d\n", host_count);
-
-    // flag to determine when a solution has been found
-    int *dev_finished;
-    // output to store solved board in
-    int *dev_solved;
-
-    // allocate memory on the device
-    cudaMalloc(&dev_finished, sizeof(int));
-    cudaMalloc(&dev_solved, N * N * sizeof(int));
-
-    // initialize memory
-    cudaMemset(dev_finished, 0, sizeof(int));
-    cudaMemcpy(dev_solved, board, N * N * sizeof(int), cudaMemcpyHostToDevice);
-
-    if (iterations % 2 == 1) {
-        // if odd number of iterations run, then send it old boards not new boards;
-        new_boards = old_boards;
-    }
-
-    cudaSudokuBacktrack(maxBlocks, threadsPerBlock, new_boards, host_count, empty_spaces,
-        empty_space_count, dev_finished, dev_solved);
-
-
-    // copy back the solved board
-    int *solved = new int[N * N];
-
-    memset(solved, 0, N * N * sizeof(int));
-
-    cudaMemcpy(solved, dev_solved, N * N * sizeof(int), cudaMemcpyDeviceToHost);
-
-    printBoard(solved);
-
-
-    // free memory
-    delete[] board;
-    delete[] solved;
-
-    cudaFree(empty_spaces);
-    cudaFree(empty_space_count);
-    cudaFree(new_boards);
-    cudaFree(old_boards);
-    cudaFree(board_index);
-
-    cudaFree(dev_finished);
-    cudaFree(dev_solved);
+int hostFE(Sudoku *sudoku){
+    int *cuda_can_solve;
+    int *can_solve = new int;
+    *can_solve = 0;
+    cudaMalloc(&cuda_can_solve, sizeof(int));
+    cudaMemset(cuda_can_solve, 0, sizeof(int));
+
+    Sudoku *cuda_sudoku;
+    cudaMalloc(&cuda_sudoku, sizeof(Sudoku));
+    cudaMemcpy(cuda_sudoku, sudoku, sizeof(Sudoku), cudaMemcpyHostToDevice);
+
+    non_recursive_solve<<<SUB_N, SUB_N>>>(cuda_sudoku, cuda_can_solve);
+
+    cudaMemcpy(sudoku, cuda_sudoku, sizeof(Sudoku), cudaMemcpyDeviceToHost);
+    cudaMemcpy(can_solve, cuda_can_solve, sizeof(int), cudaMemcpyDeviceToHost);
+    return *can_solve; 
 }
