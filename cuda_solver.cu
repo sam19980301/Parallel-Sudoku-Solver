@@ -29,6 +29,98 @@ void printBoard(int *board) {
 }
 
 /**
+ * This kernel has each thread try to solve a different board in the input array using the
+ * backtracking algorithm.
+ *
+ * boards:      This is an array of size numBoards * N * N. Each board is stored contiguously,
+ *              and rows are contiguous within the board. So, to access board x, row r, and col c,
+ *              use boards[x * N * N + r * N + c]
+ *
+ * numBoards:   The total number of boards in the boards array.
+ *
+ * emptySpaces: This is an array of size numBoards * N * N. board is stored contiguously, and stores
+ *              the indices of the empty spaces in that board. Note that this N * N pieces may not
+ *              be filled.
+ *
+ * numEmptySpaces:  This is an array of size numBoards. Each value stores the number of empty spaces
+ *                  in the corresponding board.
+ *
+ * finished:    This is a flag that determines if a solution has been found. This is a stopping
+ *              condition for the kernel.
+ *
+ * solved:      This is an output array of size N * N where the solved board is stored.
+ */
+__global__
+void sudokuBacktrack(int *boards,
+        const int numBoards,
+        int *emptySpaces,
+        int *numEmptySpaces,
+        int *finished,
+        int *solved) {
+
+    int index = blockDim.x * blockIdx.x + threadIdx.x;
+
+    int *currentBoard;
+    int *currentEmptySpaces;
+    int currentNumEmptySpaces;
+
+
+    while ((*finished == 0) && (index < numBoards)) {
+    
+        int emptyIndex = 0;
+
+        currentBoard = boards + index * 81;
+        currentEmptySpaces = emptySpaces + index * 81;
+        currentNumEmptySpaces = numEmptySpaces[index];
+
+        while ((emptyIndex >= 0) && (emptyIndex < currentNumEmptySpaces)) {
+
+            currentBoard[currentEmptySpaces[emptyIndex]]++;
+
+            if (!validBoard(currentBoard, currentEmptySpaces[emptyIndex])) {
+
+                // if the board is invalid and we tried all numbers here already, backtrack
+                // otherwise continue (it will just try the next number in the next iteration)
+                if (currentBoard[currentEmptySpaces[emptyIndex]] >= 9) {
+                    currentBoard[currentEmptySpaces[emptyIndex]] = 0;
+                    emptyIndex--;
+                }
+            }
+            // if valid board, move forward in algorithm
+            else {
+                emptyIndex++;
+            }
+
+        }
+
+        if (emptyIndex == currentNumEmptySpaces) {
+            // solved board found
+            *finished = 1;
+
+            // copy board to output
+            for (int i = 0; i < N * N; i++) {
+                solved[i] = currentBoard[i];
+            }
+        }
+
+        index += gridDim.x * blockDim.x;
+    }
+}
+
+void cudaSudokuBacktrack(const unsigned int blocks,
+        const unsigned int threadsPerBlock,
+        int *boards,
+        const int numBoards,
+        int *emptySpaces,
+        int *numEmptySpaces,
+        int *finished,
+        int *solved) {
+
+    sudokuBacktrack<<<blocks, threadsPerBlock>>>
+        (boards, numBoards, emptySpaces, numEmptySpaces, finished, solved);
+}
+
+/**
  * This kernel takes a set of old boards and finds all possible next boards by filling in the next
  * empty space.
  *
