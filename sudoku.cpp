@@ -1,5 +1,11 @@
 #include <stdio.h>
+#include <stdlib.h>
+// #include <string.h>
+// #include <iostream>
+
 #include "sudoku.h"
+
+using namespace std;
 
 void show_grid(const Grid *grid){
     printf("Sudoku's Grid\n");
@@ -37,7 +43,7 @@ void show_markup(const Markup *markup){
     {
         for (int j = 0; j < N; j++)
         {
-            printf("Row%d\tCol%d\tMarkup in hex %x\t Count%d\n", i, j, markup->markup_val[i][j], markup->count[i][j]);
+            printf("Row%d\tCol%d\tMarkup in hex %4x\t Count%d\n", i, j, markup->markup_val[i][j], markup->count[i][j]);
         }
         
     }
@@ -132,7 +138,6 @@ void sudoku_reset(Sudoku *sudoku){
 }
 
 int elimination(Sudoku *sudoku){
-    Grid *grid = &sudoku->grid;
     Markup *markup = &sudoku->markup;
     int changed = 0;
     for (int i = 0; i < N; i++)
@@ -157,7 +162,6 @@ int elimination(Sudoku *sudoku){
 }
 
 int lone_ranger(Sudoku *sudoku){
-    Grid *grid = &sudoku->grid;
     Markup *markup = &sudoku->markup;
     int checked = 0;
     // check row
@@ -281,4 +285,27 @@ void read_single_problem(Sudoku *sudoku, FILE *file_ptr){
             }
         }
     }
+    // else if (SUB_N == 5)
+    // {
+    //     // std::cout << "parsing input..." << std::endl;
+    //     size_t len = N*N*3;
+    //     char *problem = NULL;
+    //     getline(&problem, &len, file_ptr);
+    //     char *delim = " ,\n";  // symbols to seperate tokens from a string
+    //     char *token = strtok(problem, delim);
+
+    //     for (int i = 0; i < N; i++)
+    //     {
+    //         for (int j = 0; j < N; j++)
+    //         {   
+    //             if(strcmp(token, "-1")==0 || strcmp(token, "0")==0) {
+    //                 sudoku->grid.grid_val[i][j] = UNASSIGNED;
+    //             }
+    //             else {
+    //                 set_value(sudoku, i, j, atoi(token));
+    //             }
+    //             token = strtok(NULL, delim);  // iterate to next token
+    //         }
+    //     }
+    // }
 }

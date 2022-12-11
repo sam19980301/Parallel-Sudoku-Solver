@@ -119,22 +119,67 @@ inline void unset_value(Sudoku *sudoku, int row, int col){
         sudoku->grid.unknown++;
     sudoku->grid.grid_val[row][col] = UNASSIGNED;
 }
-// copy entire sudoku excluding its heap, in case of backtracking
+// original version: copy entire sudoku excluding its heap, in case of backtracking
+// copy entire sudoku "including" its heap
 inline void copy_sudoku(Sudoku *dest, Sudoku *src) {
     if (dest == src)
         return;
-    memcpy(&dest->grid, &src->grid, sizeof(Grid));
-    memcpy(&dest->markup, &src->markup, sizeof(Markup));
+    memcpy(dest, src, sizeof(Sudoku));
 }
 
 // crook's algorithm (seach space pruning): elimination, lone ranger, twins and triplets
 int elimination(Sudoku *sudoku);
 int lone_ranger(Sudoku *sudoku);
-// int twins(Sudoku *twins);    // TBD in future
-// int triplets(Sudoku *twins); // TBD in future
+// int twins(Sudoku *twins);    // supported in future
+// int triplets(Sudoku *twins); // supported in future
 void crook_pruning(Sudoku *sudoku);
 
-// helper function
+// cross hatching algorithm
+inline int get_minimum_branch_cell(Markup *markup, Cell *min_branch_cell)
+{
+    int min_count = N + 1, curr_count;
+    for (int i = 0; i < N; i++)
+    {
+        for (int j = 0; j < N; j++)
+        {
+            // curr_count = markup_count_values(markup, i, j);
+            curr_count = markup->count[i][j];
+            if (curr_count)
+            {
+                if (curr_count < min_count)
+                {
+                    min_count = curr_count;
+                    min_branch_cell->row = i;
+                    min_branch_cell->col = j;
+                }
+                // if (min_count == 2)
+                //     break;
+            }
+            // printf("%d %d %d %d\n", i, j, curr_count, min_count);
+        }
+        // if (min_count == 2)
+        //     break;
+    }
+    return (min_count != N+1);
+}
+
+// parallel utils
+inline int get_unfilled_cell(Sudoku *sudoku, Cell *cell){ // get row and col of an unfilled cell
+    int row = 0, col = 0;
+    while (row != N)
+    {
+        if (sudoku->markup.count[row][col]){ // grid->grid_val[row][col] == UNASSIGNED
+            cell->row = row;
+            cell->col = col;
+            return 1;
+        }
+        row = row + (col == N-1);
+        col = (col + 1)%N;
+    }
+    return 0;
+}
+
+// debug helper function
 void show_grid(const Grid *grid);
 void show_heap(const Heap *heap);
 void show_markup(const Markup *markup);
@@ -145,7 +190,9 @@ int validate_solution(const Grid *grid);
 void read_single_problem(Sudoku *sudoku, FILE *file_ptr);
 
 // defined for each solver
+// serial_solver
 extern int solve(Sudoku *sudoku);
-// extern int solve(Sudoku *sudoku_head, int num_thread, double *elapsed_time);
+// parallel solver that wrap specific serial solver
+extern int parallel_solve(Sudoku *sudoku_head, int max_branched_sudokus, double *end_times);
 
 #endif //__SUDOKU_H__

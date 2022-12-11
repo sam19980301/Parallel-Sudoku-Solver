@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
     Sudoku sudoku;
     int n_problems = atoi(argv[1]);
     double start_time, end_time, elapsed_time;
-    double total_elaspsed_time = 0.0;
+    double total_elapsed_time = 0.0;
     int guesses;
     int total_guesses = 0;
     int max_depth;
@@ -57,13 +57,13 @@ int main(int argc, char *argv[])
         guesses = sudoku.heap.guess;
         max_depth = sudoku.heap.max_depth;
         elapsed_time = end_time - start_time;
-        printf("%d\n", sudoku.grid.unknown);
+        // printf("%d\n", sudoku.grid.unknown);
         printf("Correct. Elapsed time=%.4f sec. Guess %5d times. Max Depth %d\n", elapsed_time, guesses, max_depth);
         total_guesses += guesses;
         total_max_depth += max_depth;
-        total_elaspsed_time += elapsed_time;
+        total_elapsed_time += elapsed_time;
     }
-    printf("Total elapsed time=%.4f sec. Total guess %d times. Max Depth %d\n", total_elaspsed_time, total_guesses, total_max_depth);
+    printf("Total elapsed time=%.4f sec. Total guess %d times. Max Depth %d\n", total_elapsed_time, total_guesses, total_max_depth);
     return 0;
 }
 

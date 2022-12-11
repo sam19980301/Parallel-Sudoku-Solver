@@ -1,31 +1,37 @@
 CXX=g++
-CXXFLAGS=-O3 -fopenmp -Wall -g -std=c++17
+CXXFLAGS=-O3 -Wall -g -std=c++17 -fopenmp
 
-SRC=solve.cpp sudoku.cpp
-# SRC += serial_nonrecursive_solver.cpp
-SRC += serial_crooks_solver.cpp
-# SRC += serial_crosshatching_solver.cpp
+# Serial or Parallel
+ifeq ($(SERIAL),1)
+	SRC=solve.cpp
+endif
 
-# SRC=solve_parallel.cpp sudoku.cpp
-# SRC += parallel_nonrecursive_solver.cpp
-# SRC += parallel_crooks_solver.cpp
+ifeq ($(PARALLEL),1)
+	SRC=solve_parallel.cpp
+endif
 
+# Brute force, Crooks, or Cross hatching
+ifeq ($(BRUTE_FORCE),1)
+	SRC += serial_nonrecursive_solver.cpp parallel_nonrecursive_solver.cpp
+endif
+
+ifeq ($(CROOKS),1)
+	SRC += serial_crooks_solver.cpp parallel_crooks_solver.cpp
+endif
+
+ifeq ($(CROSS_HATCHING),1)
+	SRC += serial_crosshatching_solver.cpp parallel_crosshatching_solver.cpp
+endif
+
+SRC += sudoku.cpp
 EXE=sudoku
-
-# ifeq ($(PROFILE),1)
-# 	CXXFLAGS += -D PROFILE
-# endif
 
 all: $(EXE)
 
 $(EXE): $(SRC)
-	$(CXX) $^ -o $@ $(CFLAGS)
+	$(CXX) $^ -o $@ $(CXXFLAGS)
 	
 .PHONY: clean
 
 clean:
 	rm -rf *.o sudoku
-
-# make clean
-# make or make PROFILE=1
-# ./sudoku
