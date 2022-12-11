@@ -1,13 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <omp.h>
 #include "CycleTimer.h"
 #include "sudoku.h"
-#include "omp.h"
-#include <iostream>
-#include <vector>
-#include <algorithm>
-#include "CycleTimer.h"
 
 /* flags for debugging */
 // #define GRID_VERBOSE
@@ -86,17 +82,19 @@ int main(int argc, char *argv[])
         printf("[Result]\n");
         show_grid(&sudoku_arr[0].grid);
         #endif
-        printf("Problem %d Correct. Elapsed time=%.4f sec. Guess=%5d times. Max Depth=%5d\n", i, elapsed_time, guesses, max_depth);
+        printf("Problem %6d Correct. Elapsed time=%2.8f sec. Guess=%6d times. Max Depth=%6d\n", i, elapsed_time, guesses, max_depth);
         // Skip recording the first sudoku problem (seems that there exists heavy overhead when first running parallel threads sometimes)
         if (i > 0)
         {
+            total_elapsed_time += elapsed_time;
             total_guesses += guesses;
             total_max_depth += max_depth;
-            total_elapsed_time += elapsed_time;
         }
     }
-    
-    printf("# Thread Used: %2d Total elapsed time=%.4f sec. Total guess=%10d times. Max Depth=%10d\n", max_threads, total_elapsed_time, total_guesses, total_max_depth);
+    double average_elapsed_time = total_elapsed_time / (n_problems-1);
+    double average_guesses = (double) total_guesses / (n_problems-1);
+    double average_max_depth = (double) total_max_depth / (n_problems-1);
+    printf("# Thread Used: %2d Average elapsed time=%2.8f sec. Average guess=%.4f times. Average max depth=%.4f\n", max_threads, average_elapsed_time, average_guesses, average_max_depth);
     return 0;
 }
 

@@ -1,10 +1,4 @@
 # command line: ./test_time {puzzles2_17_clue, puzzles5_forum_hardest_1905_11+} {1,2,3}
-
-# ./test_time.sh puzzles2_17_clue 2
-# ./test_time.sh puzzles2_17_clue 3
-# ./test_time.sh puzzles5_forum_hardest_1905_11+ 2
-# ./test_time.sh puzzles5_forum_hardest_1905_11+ 3
-
 # Make Folder
 DIR="result/"
 if [ ! -d "$DIR" ]; then
@@ -15,9 +9,9 @@ fi
 echo "Selected Dataset: ${1}"
 if [ "$1" = "puzzles2_17_clue" ]
 then
-    n_prob=49158
+    n_prob=49158 # 1000
 else
-    n_prob=48766
+    n_prob=48766 # 1000
 fi
 
 # Solver
@@ -39,7 +33,12 @@ else
 fi
 
 echo "Test Performance"
-for thread in 1 2 4 8
+./sudoku 1 1 $n_prob "data/$1" | tee "result/thread_1_branch_1_algo_${algo}_dataset_$1.txt"
+for thread in 2 4 8
 do
-  ./sudoku $thread $thread $n_prob "data/$1" | tee "result/thread_${thread}_algo_${algo}_dataset_$1.txt"
+    for mult_branch in 1 2 3 4
+    do
+        branch=$(($thread * $mult_branch))
+        ./sudoku $thread $branch $n_prob "data/$1" | tee "result/thread_${thread}_branch_${branch}_algo_${algo}_dataset_$1.txt"
+    done
 done 
