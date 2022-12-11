@@ -37,6 +37,6 @@ fi
 
 echo "Test Performance"
 ./sudoku 1 1 $n_prob data/$1 | tee "result/1_$1.txt"
-# ./sudoku 2 2 $n_prob data/$1 | tee "result/2_$1.txt"
-# ./sudoku 4 4 $n_prob data/$1 | tee "result/4_$1.txt"
-# ./sudoku 8 8 $n_prob data/$1 | tee "result/8_$1.txt"
+./sudoku 2 2 $n_prob data/$1 | tee "result/2_$1.txt"
+./sudoku 4 4 $n_prob data/$1 | tee "result/4_$1.txt"
+./sudoku 8 8 $n_prob data/$1 | tee "result/8_$1.txt"
