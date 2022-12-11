@@ -17,7 +17,7 @@ int solve(Sudoku *sudoku){
     // set_value
     while (grid->unknown)
     {
-        // printf("%d\n",grid->unknown);
+        // printf("Unknown: %d\n",grid->unknown);
         // show_grid(grid);
         // show_heap(heap);
 

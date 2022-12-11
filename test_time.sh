@@ -25,18 +25,21 @@ make clean
 if [ "$2" = "1" ]
 then
     echo "Solver is brute force"
+    algo=bruteforce
     make PARALLEL=1 BRUTE_FORCE=1
 elif [ "$2" = "2" ]
 then
     echo "Solver is crooks"
+    algo=crooks
     make PARALLEL=1 CROOKS=1
 else
     echo "Solver is cross hatching"
+    algo=crosshatching
     make PARALLEL=1 CROSS_HATCHING=1
 fi
 
 echo "Test Performance"
-./sudoku 1 1 $n_prob data/$1 | tee "result/1_$1.txt"
-./sudoku 2 2 $n_prob data/$1 | tee "result/2_$1.txt"
-./sudoku 4 4 $n_prob data/$1 | tee "result/4_$1.txt"
-./sudoku 8 8 $n_prob data/$1 | tee "result/8_$1.txt"
+for thread in 1 2 4 8
+do
+  ./sudoku $thread $thread $n_prob "data/$1" | tee "result/thread_${thread}_algo_${algo}_dataset_$1.txt"
+done 

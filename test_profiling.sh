@@ -1,0 +1,1 @@
+perf record -e cpu-cycles ./sudoku 1 1 1000 data/puzzles2_17_clue
