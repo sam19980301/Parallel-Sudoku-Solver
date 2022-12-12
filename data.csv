@@ -1,0 +1,81 @@
+Dataset,Threads,Branchs,Algorithm,Average Elapsed Time,Average Guess,Average Max Depth
+puzzles2_17_clue,1,1,Crooks,0.00092256,120.6707,2.5981
+puzzles2_17_clue,2,2,Crooks,0.00072926,82.516,2.1718
+puzzles2_17_clue,2,4,Crooks,0.00053613,38.3073,1.6841
+puzzles2_17_clue,2,6,Crooks,0.0005406,23.9233,1.4872
+puzzles2_17_clue,2,8,Crooks,0.00054234,21.1762,1.3952
+puzzles2_17_clue,4,4,Crooks,0.00037505,38.3073,1.6841
+puzzles2_17_clue,4,8,Crooks,0.00034269,21.1762,1.3952
+puzzles2_17_clue,4,12,Crooks,0.00038265,17.0686,1.2685
+puzzles2_17_clue,4,16,Crooks,0.0003403,13.9905,1.184
+puzzles2_17_clue,8,8,Crooks,0.00024515,21.1762,1.3952
+puzzles2_17_clue,8,16,Crooks,0.00025296,13.9905,1.184
+puzzles2_17_clue,8,24,Crooks,0.00023213,10.0351,1.0942
+puzzles2_17_clue,8,32,Crooks,0.00021714,7.8828,1.0537
+puzzles2_17_clue,16,16,Crooks,0.00019529,13.9905,1.184
+puzzles2_17_clue,16,32,Crooks,0.00017338,7.8828,1.0537
+puzzles2_17_clue,16,48,Crooks,0.00017739,6.2927,1.016
+puzzles2_17_clue,16,64,Crooks,0.00018488,5.8947,0.9996
+puzzles2_17_clue,32,32,Crooks,0.00018237,7.8828,1.0537
+puzzles2_17_clue,32,64,Crooks,0.00018262,5.8947,0.9996
+puzzles2_17_clue,32,96,Crooks,0.00018686,5.4048,0.9803
+puzzles2_17_clue,1,1,Cross Hatching,0.00044642,76.1319,2.9697
+puzzles2_17_clue,2,2,Cross Hatching,0.00027387,31.0304,2.1189
+puzzles2_17_clue,2,4,Cross Hatching,0.00026599,14.5675,1.587
+puzzles2_17_clue,2,6,Cross Hatching,0.00027087,9.7351,1.4162
+puzzles2_17_clue,2,8,Cross Hatching,0.00025815,6.3041,1.2856
+puzzles2_17_clue,4,4,Cross Hatching,0.00015048,14.5675,1.587
+puzzles2_17_clue,4,8,Cross Hatching,0.00014858,6.3041,1.2856
+puzzles2_17_clue,4,12,Cross Hatching,0.00015613,4.6379,1.2039
+puzzles2_17_clue,4,16,Cross Hatching,0.00015322,3.8317,1.156
+puzzles2_17_clue,8,8,Cross Hatching,0.0001023,6.3041,1.2856
+puzzles2_17_clue,8,16,Cross Hatching,0.00010865,3.8317,1.156
+puzzles2_17_clue,8,24,Cross Hatching,0.00011126,3.2611,1.1277
+puzzles2_17_clue,8,32,Cross Hatching,0.00011642,3.0794,1.1154
+puzzles2_17_clue,16,16,Cross Hatching,9.77E-05,3.8317,1.156
+puzzles2_17_clue,16,32,Cross Hatching,9.98E-05,3.0794,1.1154
+puzzles2_17_clue,16,48,Cross Hatching,0.00010268,2.9618,1.1095
+puzzles2_17_clue,16,64,Cross Hatching,0.00010094,2.9306,1.1078
+puzzles2_17_clue,32,32,Cross Hatching,0.00011604,3.0794,1.1154
+puzzles2_17_clue,32,64,Cross Hatching,0.00011749,2.9306,1.1078
+puzzles2_17_clue,32,96,Cross Hatching,0.00011922,2.9081,1.1069
+puzzles5_forum_hardest_1905_11+,1,1,Crooks,0.00269262,346.3562,10.1319
+puzzles5_forum_hardest_1905_11+,2,2,Crooks,0.00197547,233.9784,9.4073
+puzzles5_forum_hardest_1905_11+,2,4,Crooks,0.00167291,112.4664,8.2198
+puzzles5_forum_hardest_1905_11+,2,6,Crooks,0.00163797,84.1078,7.5805
+puzzles5_forum_hardest_1905_11+,2,8,Crooks,0.0017321,71.725,7.1555
+puzzles5_forum_hardest_1905_11+,4,4,Crooks,0.00096192,112.4664,8.2198
+puzzles5_forum_hardest_1905_11+,4,8,Crooks,0.00102532,71.725,7.1555
+puzzles5_forum_hardest_1905_11+,4,12,Crooks,0.00097432,51.5186,6.5037
+puzzles5_forum_hardest_1905_11+,4,16,Crooks,0.00095901,40.1505,6.0588
+puzzles5_forum_hardest_1905_11+,8,8,Crooks,0.000673,71.725,7.1555
+puzzles5_forum_hardest_1905_11+,8,16,Crooks,0.00064577,40.1505,6.0588
+puzzles5_forum_hardest_1905_11+,8,24,Crooks,0.00065325,28.8072,5.5329
+puzzles5_forum_hardest_1905_11+,8,32,Crooks,0.00070006,24.903,5.2675
+puzzles5_forum_hardest_1905_11+,16,16,Crooks,0.00047472,40.1505,6.0588
+puzzles5_forum_hardest_1905_11+,16,32,Crooks,0.00052757,24.903,5.2675
+puzzles5_forum_hardest_1905_11+,16,48,Crooks,0.0005976,21.6521,5.0381
+puzzles5_forum_hardest_1905_11+,16,64,Crooks,0.00062276,20.385,4.9494
+puzzles5_forum_hardest_1905_11+,32,32,Crooks,0.00053256,24.903,5.2675
+puzzles5_forum_hardest_1905_11+,32,64,Crooks,0.00063848,20.385,4.9494
+puzzles5_forum_hardest_1905_11+,32,96,Crooks,0.0006602,19.7005,4.9022
+puzzles5_forum_hardest_1905_11+,1,1,Cross Hatching,0.0019317,277.8618,12.2772
+puzzles5_forum_hardest_1905_11+,2,2,Cross Hatching,0.00120048,155.1161,11.021
+puzzles5_forum_hardest_1905_11+,2,4,Cross Hatching,0.0010994,83.8396,9.6942
+puzzles5_forum_hardest_1905_11+,2,6,Cross Hatching,0.00108612,60.3282,8.9824
+puzzles5_forum_hardest_1905_11+,2,8,Cross Hatching,0.00109288,46.8912,8.4246
+puzzles5_forum_hardest_1905_11+,4,4,Cross Hatching,0.0006637,83.8396,9.6942
+puzzles5_forum_hardest_1905_11+,4,8,Cross Hatching,0.0006363,46.8912,8.4246
+puzzles5_forum_hardest_1905_11+,4,12,Cross Hatching,0.00065431,34.726,7.78
+puzzles5_forum_hardest_1905_11+,4,16,Cross Hatching,0.00068011,28.218,7.339
+puzzles5_forum_hardest_1905_11+,8,8,Cross Hatching,0.00042499,46.8912,8.4246
+puzzles5_forum_hardest_1905_11+,8,16,Cross Hatching,0.00046761,28.218,7.339
+puzzles5_forum_hardest_1905_11+,8,24,Cross Hatching,0.00051573,23.2842,6.9206
+puzzles5_forum_hardest_1905_11+,8,32,Cross Hatching,0.00056172,21.3495,6.7417
+puzzles5_forum_hardest_1905_11+,16,16,Cross Hatching,0.00037072,28.218,7.339
+puzzles5_forum_hardest_1905_11+,16,32,Cross Hatching,0.00045995,21.3495,6.7417
+puzzles5_forum_hardest_1905_11+,16,48,Cross Hatching,0.00050772,20.4363,6.6409
+puzzles5_forum_hardest_1905_11+,16,64,Cross Hatching,0.00050268,20.2207,6.6202
+puzzles5_forum_hardest_1905_11+,32,32,Cross Hatching,0.00051899,21.3495,6.7417
+puzzles5_forum_hardest_1905_11+,32,64,Cross Hatching,0.00057086,20.2207,6.6202
+puzzles5_forum_hardest_1905_11+,32,96,Cross Hatching,0.00058132,20.1772,6.6161
