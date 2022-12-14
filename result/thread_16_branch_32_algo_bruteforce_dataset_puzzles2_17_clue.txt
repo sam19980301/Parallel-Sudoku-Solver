@@ -1,0 +1,11 @@
+Problem      0 Correct. Elapsed time=8.01926011 sec. Guess=7027353 times. Max Depth=    63
+Problem      1 Correct. Elapsed time=2.60794344 sec. Guess=6573841 times. Max Depth=    62
+Problem      2 Correct. Elapsed time=0.67284881 sec. Guess=1972534 times. Max Depth=    62
+Problem      3 Correct. Elapsed time=18.97388099 sec. Guess=73107008 times. Max Depth=    63
+Problem      4 Correct. Elapsed time=2.78368920 sec. Guess=13542195 times. Max Depth=    63
+Problem      5 Correct. Elapsed time=5.97067989 sec. Guess=6813730 times. Max Depth=    62
+Problem      6 Correct. Elapsed time=1.87236282 sec. Guess=5193809 times. Max Depth=    63
+Problem      7 Correct. Elapsed time=5.05140489 sec. Guess=9804123 times. Max Depth=    62
+Problem      8 Correct. Elapsed time=1.84509924 sec. Guess=9680548 times. Max Depth=    62
+Problem      9 Correct. Elapsed time=6.06547602 sec. Guess=27131970 times. Max Depth=    62
+# Thread Used: 16 Average elapsed time=5.09370948 sec. Average guess=17091084.2222 times. Average max depth=62.3333
